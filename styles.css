@@ -1,0 +1,29 @@
+/* General Styles */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --obsidian: #0d0b08; --ember: #c94a1a; --flame: #e87d2a;
+  --gold: #d4a832; --gold-dim: #8a6a1a; --mist: #e8e0d0;
+}
+html, body { height: 100%; background: #000; display: flex; justify-content: center; font-family: 'Crimson Text', serif; overflow: hidden; }
+
+/* App Container */
+.app { width: 100%; max-width: 430px; height: 100vh; background: var(--obsidian); display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.stars { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.star { position: absolute; background: #fff; border-radius: 50%; animation: twinkle var(--d) ease-in-out infinite alternate; }
+@keyframes twinkle { from { opacity: 0.1 } to { opacity: 0.7 } }
+
+/* Homepage Styles */
+#home { align-items: center; justify-content: center; text-align: center; padding: 40px 28px; background: linear-gradient(180deg, transparent, rgba(201,74,26,0.07)); }
+.moon { width: 80px; height: 80px; background: radial-gradient(circle at 35% 35%, #f0e8c0, #c8b870); border-radius: 50%; box-shadow: 0 0 40px rgba(212,168,50,0.3), 0 0 80px rgba(212,168,50,0.1); margin-bottom: 20px; }
+.home-eyebrow { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 4px; color: var(--gold); text-transform: uppercase; margin-bottom: 10px; opacity: 0.8; }
+.home-title { font-family: 'Cinzel', serif; font-size: 46px; font-weight: 900; color: var(--mist); line-height: 1.05; text-shadow: 0 2px 20px rgba(212,168,50,0.3); margin-bottom: 6px; }
+.home-title .fire { color: var(--flame); }
+.home-sub { font-style: italic; font-size: 15px; color: rgba(232,224,208,0.45); margin-bottom: 28px; }
+.home-tagline { font-size: 14px; color: rgba(232,224,208,0.4); line-height: 1.75; max-width: 280px; margin: 0 auto 40px; }
+.btn-begin { background: linear-gradient(135deg, var(--ember), var(--flame)); color: var(--mist); border: none; border-radius: 3px; padding: 18px 0; width: 240px; font-family: 'Cinzel', serif; font-size: 13px; cursor: pointer; }
+.btn-begin:active { transform: scale(0.97); }
+
+/* Questions Area Adjustments */
+.question-box { margin: 16px; background: rgba(0,0,0,0.6); color: var(--gold); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 14px 16px; min-height: 72px; }
+.choice-btn { background: rgba(20,20,20,0.8); border: 1px solid #555; color: var(--mist); margin: 8px 16px; border-radius: 5px; font-size: 14px; }
+.choice-btn.correct { background: rgba(42,90,48,.55); color: #b0e8b8; border-color: rgba(74,184,85,0.7); }
