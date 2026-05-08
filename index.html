@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Wizard Quest</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --obsidian: #0d0b08; --ember: #c94a1a; --flame: #e87d2a;
+  --gold: #d4a832; --gold-dim: #8a6a1a; --mist: #e8e0d0;
+}
+html, body { height:100%; background:#000; display:flex; justify-content:center; font-family:'Crimson Text',serif; overflow:hidden; }
+.app { width:100%; max-width:430px; height:100vh; background:var(--obsidian); display:flex; flex-direction:column; position:relative; overflow:hidden; }
+.stars { position:absolute; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+.star { position:absolute; background:#fff; border-radius:50%; animation:twinkle var(--d) ease-in-out infinite alternate; }
+@keyframes twinkle { from{opacity:.1} to{opacity:.7} }
+.screen { display:none; flex-direction:column; flex:1; position:relative; z-index:1; animation:fadeIn 0.4s ease both; }
+.screen.active { display:flex; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+/* HOME */
+#home { align-items:center; justify-content:center; text-align:center; padding:40px 28px; background:linear-gradient(180deg,transparent,rgba(201,74,26,0.07)); }
+.moon { width:80px;height:80px;background:radial-gradient(circle at 35% 35%,#f0e8c0,#c8b870);border-radius:50%;box-shadow:0 0 40px rgba(212,168,50,0.3),0 0 80px rgba(212,168,50,0.1);margin-bottom:18px; }
+.home-eyebrow { font-family:‘Cinzel’,serif;font-size:10px;letter-spacing:4px;color:var(–gold);text-transform:uppercase;margin-bottom:10px;opacity:.8; }
+.home-title { font-family:‘Cinzel’,serif;font-size:46px;font-weight:900;color:var(–mist);line-height:1.05;text-shadow:0 2px 20px rgba(212,168,50,0.3);margin-bottom:6px; }
+.home-title .fire { color:var(–flame); }
+.home-sub { font-style:italic;font-size:15px;color:rgba(232,224,208,0.45);margin-bottom:28px; }
+.home-tagline { font-size:14px;color:rgba(232,224,208,0.4);line-height:1.75;max-width:280px;margin:0 auto 40px; }
+.btn-begin { background:linear-gradient(135deg,var(–ember),var(–flame));color:var(–mist);border:none;border-radius:3px;padding:18px 0;width:240px;font-family:‘Cinzel’,serif;font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all .2s;box-shadow:0 4px 24px rgba(201,74,26,.4); }
+.btn-begin:active { transform:scale(.97); }
+
+/* BATTLE */
+#battle { background:linear-gradient(180deg,#100d08 0%,#1a1208 60%,#0d1008 100%); overflow-y:auto; }
+.battle-top { padding:14px 20px 0;display:flex;justify-content:space-between;align-items:center; }
+.q-num { font-family:‘Cinzel’,serif;font-size:11px;letter-spacing:2px;color:var(–gold-dim); }
+.score-display { font-family:‘Cinzel’,serif;font-size:15px;color:var(–gold); }
+.score-display span { color:rgba(232,224,208,.3);font-size:11px; }
+
+/* BATTLE ARENA */
+.battle-arena { margin:8px 16px 4px;position:relative;height:170px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);border-radius:6px;overflow:hidden; }
+/* ground */
+.battle-arena::after { content:’’;position:absolute;bottom:0;left:0;right:0;height:28px;background:linear-gradient(0deg,rgba(42,30,10,0.8),transparent); }
+/* fighters */
+.fighter-wrap { position:absolute;bottom:22px;display:flex;flex-direction:column;align-items:center;gap:2px; }
+.fighter-wrap.wizard-side { left:20px; }
+.fighter-wrap.dragon-side { right:20px; }
+.fighter-label { font-family:‘Cinzel’,serif;font-size:8px;letter-spacing:1px;color:rgba(232,224,208,0.25);text-align:center; }
+/* SVG fighters */
+.fighter-svg { display:block; }
+/* limb states - these get class ‘severed’ */
+.limb { transition:opacity 0.3s ease; }
+.limb.severed { opacity:0.15; }
+/* hit flash on fighter */
+.fighter-wrap.hit-flash { animation:hitFlash 0.4s ease; }
+.fighter-wrap.cast-anim { animation:castAnim 0.35s ease; }
+@keyframes hitFlash { 0%,100%{filter:none} 40%{filter:brightness(3) saturate(0)} }
+@keyframes castAnim { 0%,100%{filter:none} 40%{filter:drop-shadow(0 0 8px #a0f) brightness(1.4)} }
+/* projectiles */
+.proj { position:absolute;font-size:16px;pointer-events:none;z-index:10; }
+.proj.spell-proj { animation:spellFly 0.5s ease-out forwards; }
+.proj.fire-proj  { animation:fireFly 0.5s ease-in forwards; }
+@keyframes spellFly { from{left:var(–sx);top:var(–sy);opacity:1;transform:scale(1);} to{left:var(–ex);top:var(–ey);opacity:0;transform:scale(0.4);} }
+@keyframes fireFly  { from{left:var(–sx);top:var(–sy);opacity:1;transform:scale(1);} to{left:var(–ex);top:var(–ey);opacity:0;transform:scale(0.4);} }
+/* step track */
+.step-track { margin:0 16px 4px;display:flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:4px; }
+.step-dot { width:16px;height:16px;border-radius:50%;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);transition:all 0.4s ease;flex-shrink:0; }
+.step-dot.passed { background:rgba(212,168,50,0.35);border-color:rgba(212,168,50,0.8);box-shadow:0 0 5px rgba(212,168,50,0.4); }
+.step-label { font-family:‘Cinzel’,serif;font-size:8px;letter-spacing:1px;color:rgba(232,224,208,0.2);margin-left:auto; }
+
+/* combat log */
+.combat-log { height:24px;display:flex;align-items:center;justify-content:center;padding:0 16px;margin-top:2px; }
+.log-text { font-style:italic;font-size:12px;color:rgba(212,168,50,.6);letter-spacing:.4px;text-align:center; }
+
+/* category */
+.cat-badge { margin:4px 16px 6px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:2px;padding:3px 10px;align-self:flex-start; }
+.cat-badge-icon { font-size:12px; }
+.cat-badge-text { font-family:‘Cinzel’,serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(232,224,208,.3); }
+
+/* question */
+.question-box { margin:0 16px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:4px;padding:14px 16px;min-height:72px;display:flex;align-items:center; }
+.question-text { font-size:16px;color:var(–mist);line-height:1.55; }
+
+/* choices */
+.choices { padding:0 16px 20px;display:flex;flex-direction:column;gap:8px; }
+.choice-btn { background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:4px;padding:13px 14px;text-align:left;cursor:pointer;transition:all .18s ease;display:flex;align-items:center;gap:12px; }
+.choice-btn:active { transform:scale(.99); }
+.choice-letter { font-family:‘Cinzel’,serif;font-size:11px;font-weight:700;color:rgba(212,168,50,.5);width:18px;flex-shrink:0; }
+.choice-text { font-size:15px;color:rgba(232,224,208,.8);line-height:1.3; }
+.choice-btn.correct { background:rgba(42,90,48,.35);border-color:rgba(74,184,85,.5); }
+.choice-btn.correct .choice-letter { color:#4ab855; }
+.choice-btn.correct .choice-text { color:#b0e8b8; }
+.choice-btn.wrong { background:rgba(138,26,10,.3);border-color:rgba(224,64,32,.4); }
+.choice-btn.wrong .choice-letter { color:#e04020; }
+.choice-btn.wrong .choice-text { color:rgba(232,200,200,.7); }
+.choice-btn.disabled { pointer-events:none;opacity:.45; }
+.flash-overlay { position:absolute;inset:0;pointer-events:none;z-index:20;opacity:0; }
+.flash-overlay.show-correct { background:rgba(74,184,85,.07);animation:flash .55s ease forwards; }
+.flash-overlay.show-wrong   { background:rgba(224,64,32,.10);animation:flash .55s ease forwards; }
+@keyframes flash { 0%{opacity:0} 20%{opacity:1} 100%{opacity:0} }
+
+/* END SCREEN */
+#endscreen { align-items:center;justify-content:center;padding:32px 28px;text-align:center;overflow-y:auto; }
+.end-scene { font-size:120px;line-height:1;margin-bottom:8px;animation:scenePop 0.6s cubic-bezier(0.34,1.56,0.64,1) both; }
+@keyframes scenePop { from{opacity:0;transform:scale(0.5)} to{opacity:1;transform:scale(1)} }
+.end-eyebrow { font-family:‘Cinzel’,serif;font-size:10px;letter-spacing:4px;color:var(–gold-dim);text-transform:uppercase;margin-bottom:8px; }
+.end-title { font-family:‘Cinzel’,serif;font-size:30px;font-weight:900;color:var(–mist);line-height:1.1;margin-bottom:6px; }
+.end-subtitle { font-style:italic;font-size:15px;color:rgba(232,224,208,.4);margin-bottom:24px; }
+.end-score-ring { width:110px;height:110px;border:2px solid rgba(212,168,50,.25);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 24px;background:rgba(212,168,50,.04);position:relative; }
+.end-score-ring::before { content:’’;position:absolute;inset:5px;border:1px solid rgba(212,168,50,.1);border-radius:50%; }
+.end-score-num { font-family:‘Cinzel’,serif;font-size:40px;font-weight:900;color:var(–gold);line-height:1; }
+.end-score-label { font-size:10px;letter-spacing:2px;color:rgba(232,224,208,.3);text-transform:uppercase; }
+.end-verdict { font-size:14px;color:rgba(232,224,208,.55);line-height:1.7;max-width:280px;margin:0 auto 32px;font-style:italic; }
+.btn-again { background:linear-gradient(135deg,var(–ember),var(–flame));color:var(–mist);border:none;border-radius:3px;padding:17px 0;width:220px;font-family:‘Cinzel’,serif;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all .2s;box-shadow:0 4px 24px rgba(201,74,26,.35); }
+.btn-again:active { transform:scale(.97); }
+</style>
+
+</head>
+<body>
+<div class="app">
+  <div class="stars" id="stars"></div>
+
+  <!-- HOME -->
+
+  <div class="screen active" id="home">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;padding:40px 28px;position:relative;z-index:2;">
+      <div class="moon"></div>
+      <div class="home-eyebrow">A Quest of Knowledge</div>
+      <div class="home-title">The Wizard<br><span class="fire">Quest</span></div>
+      <div class="home-sub">History &amp; Science Trivia</div>
+      <div class="home-tagline">Answer correctly to march toward the dragon and blast it with your spell. Answer wrong and it fires back from wherever you stand. Reach it to deliver the killing blow.<br><br>10 questions. One champion.</div>
+      <button class="btn-begin" onclick="startGame()">🧙‍♂️ &nbsp;Enter the Gauntlet</button>
+    </div>
+  </div>
+
+  <!-- BATTLE -->
+
+  <div class="screen" id="battle">
+    <div class="battle-top">
+      <div class="q-num" id="qNum">Question 1 of 12</div>
+      <div class="score-display">✨ <span id="scoreVal">0</span> <span>pts</span></div>
+    </div>
+
+```
+<!-- FIGHTERS ARENA -->
+<div class="battle-arena" id="battleArena">
+  <!-- Wizard -->
+  <div class="fighter-wrap wizard-side" id="wizardWrap">
+    <svg class="fighter-svg" width="60" height="100" viewBox="0 0 60 100">
+      <!-- Hat -->
+      <polygon points="30,2 18,28 42,28" fill="#6a3db8" stroke="#9a6de8" stroke-width="1"/>
+      <rect x="14" y="26" width="32" height="5" rx="2" fill="#7a4dc8" stroke="#9a6de8" stroke-width="1"/>
+      <!-- Head -->
+      <circle cx="30" cy="38" r="10" fill="#f0d090" stroke="#c0a060" stroke-width="1"/>
+      <!-- Eyes -->
+      <circle cx="26" cy="36" r="2" fill="#2a1a6a"/>
+      <circle cx="34" cy="36" r="2" fill="#2a1a6a"/>
+      <!-- Beard -->
+      <ellipse cx="30" cy="44" rx="7" ry="4" fill="#ddd"/>
+      <!-- Body/Robe -->
+      <rect x="20" y="48" width="20" height="28" rx="4" fill="#5a2da8" stroke="#7a4dc8" stroke-width="1"/>
+      <!-- Stars on robe -->
+      <text x="24" y="62" font-size="8" fill="#ffd700">✦</text>
+      <text x="32" y="68" font-size="6" fill="#a0c0ff">✦</text>
+      <!-- LEFT ARM (limb index 0) -->
+      <g id="wiz-larm" class="limb">
+        <line x1="20" y1="55" x2="8" y2="68" stroke="#5a2da8" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="6" cy="70" r="3" fill="#f0d090" stroke="#c0a060" stroke-width="1"/>
+      </g>
+      <!-- RIGHT ARM (limb index 1) - staff arm -->
+      <g id="wiz-rarm" class="limb">
+        <line x1="40" y1="55" x2="52" y2="65" stroke="#5a2da8" stroke-width="5" stroke-linecap="round"/>
+        <line x1="52" y1="65" x2="58" y2="45" stroke="#8B4513" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="58" cy="43" r="4" fill="#9a6de8" stroke="#c0a0ff" stroke-width="1"/>
+      </g>
+      <!-- LEFT LEG (limb index 2) -->
+      <g id="wiz-lleg" class="limb">
+        <line x1="26" y1="76" x2="20" y2="92" stroke="#4a1d88" stroke-width="6" stroke-linecap="round"/>
+        <ellipse cx="19" cy="94" rx="5" ry="3" fill="#3a1a60"/>
+      </g>
+      <!-- RIGHT LEG (limb index 3) -->
+      <g id="wiz-rleg" class="limb">
+        <line x1="34" y1="76" x2="40" y2="92" stroke="#4a1d88" stroke-width="6" stroke-linecap="round"/>
+        <ellipse cx="41" cy="94" rx="5" ry="3" fill="#3a1a60"/>
+      </g>
+    </svg>
+    <div class="fighter-label">WIZARD KYLE</div>
+  </div>
+
+  <!-- Dragon -->
+  <div class="fighter-wrap dragon-side" id="dragonWrap">
+    <svg class="fighter-svg" width="70" height="110" viewBox="0 0 70 110" style="transform:scaleX(-1)">
+      <!-- Wing -->
+      <path d="M35,30 Q55,10 65,20 Q55,35 40,40Z" fill="#8b1a0a" opacity="0.8" stroke="#c03020" stroke-width="1"/>
+      <!-- Body -->
+      <ellipse cx="35" cy="65" rx="18" ry="22" fill="#2a8a2a" stroke="#1a6a1a" stroke-width="1.5"/>
+      <!-- Belly -->
+      <ellipse cx="35" cy="68" rx="11" ry="15" fill="#4aaa4a" opacity="0.6"/>
+      <!-- Neck -->
+      <rect x="27" y="38" width="16" height="16" rx="6" fill="#2a8a2a" stroke="#1a6a1a" stroke-width="1"/>
+      <!-- Head -->
+      <ellipse cx="35" cy="28" rx="14" ry="12" fill="#2a8a2a" stroke="#1a6a1a" stroke-width="1.5"/>
+      <!-- Snout -->
+      <ellipse cx="35" cy="22" rx="9" ry="6" fill="#3aaa3a" stroke="#1a6a1a" stroke-width="1"/>
+      <!-- Nostrils -->
+      <circle cx="31" cy="21" r="1.5" fill="#1a4a1a"/>
+      <circle cx="39" cy="21" r="1.5" fill="#1a4a1a"/>
+      <!-- Eyes -->
+      <circle cx="28" cy="28" r="3" fill="#ff4400"/>
+      <circle cx="28" cy="28" r="1.5" fill="#000"/>
+      <circle cx="42" cy="28" r="3" fill="#ff4400"/>
+      <circle cx="42" cy="28" r="1.5" fill="#000"/>
+      <!-- Horns -->
+      <line x1="28" y1="18" x2="24" y2="8" stroke="#1a6a1a" stroke-width="3" stroke-linecap="round"/>
+      <line x1="42" y1="18" x2="46" y2="8" stroke="#1a6a1a" stroke-width="3" stroke-linecap="round"/>
+      <!-- Spines -->
+      <path d="M35,44 L33,36 L35,44 L37,34 L35,44 L39,37Z" fill="#1a6a1a"/>
+      <!-- LEFT ARM (limb 0) -->
+      <g id="drag-larm" class="limb">
+        <line x1="17" y1="58" x2="5" y2="72" stroke="#2a8a2a" stroke-width="6" stroke-linecap="round"/>
+        <path d="M2,74 L6,68 L10,74 L6,78Z" fill="#1a6a1a"/>
+      </g>
+      <!-- RIGHT ARM (limb 1) -->
+      <g id="drag-rarm" class="limb">
+        <line x1="53" y1="58" x2="65" y2="72" stroke="#2a8a2a" stroke-width="6" stroke-linecap="round"/>
+        <path d="M62,74 L66,68 L70,74 L66,78Z" fill="#1a6a1a"/>
+      </g>
+      <!-- LEFT LEG (limb 2) -->
+      <g id="drag-lleg" class="limb">
+        <line x1="24" y1="84" x2="16" y2="100" stroke="#1a6a1a" stroke-width="7" stroke-linecap="round"/>
+        <path d="M10,102 L16,96 L22,102 L16,108Z" fill="#1a6a1a"/>
+      </g>
+      <!-- RIGHT LEG (limb 3) -->
+      <g id="drag-rleg" class="limb">
+        <line x1="46" y1="84" x2="54" y2="100" stroke="#1a6a1a" stroke-width="7" stroke-linecap="round"/>
+        <path d="M48,102 L54,96 L60,102 L54,108Z" fill="#1a6a1a"/>
+      </g>
+      <!-- Tail -->
+      <path d="M35,85 Q20,95 12,105 Q18,102 24,106 Q20,98 28,92Z" fill="#2a8a2a" stroke="#1a6a1a" stroke-width="1"/>
+    </svg>
+    <div class="fighter-label">IGNIVEX</div>
+  </div>
+</div>
+
+<!-- STEP TRACK -->
+<div class="step-track" id="stepTrack"></div>
+
+<div class="combat-log"><div class="log-text" id="logText">The dragon awaits your wisdom...</div></div>
+<div class="cat-badge">
+  <span class="cat-badge-icon" id="catIcon">📚</span>
+  <span class="cat-badge-text" id="catLabel">History</span>
+</div>
+<div class="question-box"><div class="question-text" id="questionText">Loading...</div></div>
+<div class="choices" id="choices"></div>
+<div class="flash-overlay" id="flashOverlay"></div>
+```
+
+  </div>
+
+  <!-- END -->
+
+  <div class="screen" id="endscreen">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:32px 28px;text-align:center;">
+      <div class="end-scene" id="endScene">🏆</div>
+      <div class="end-eyebrow">Quest Complete</div>
+      <div class="end-title" id="endTitle">Victory!</div>
+      <div class="end-subtitle" id="endSub">The dragon has been slain</div>
+      <div class="end-score-ring">
+        <div class="end-score-num" id="endScore">0</div>
+        <div class="end-score-label">Points</div>
+      </div>
+      <div class="end-verdict" id="endVerdict"></div>
+      <button class="btn-again" onclick="startGame()">🧙‍♂️ &nbsp;Quest Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Stars
+(function(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<60;i++){
+    const s=document.createElement('div');s.className='star';
+    const sz=Math.random()*2+0.5;
+    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*3+2).toFixed(1)}s;animation-delay:${(Math.random()*4).toFixed(1)}s;`;
+    c.appendChild(s);
+  }
+})();
+
+// ── QUESTION BANK (509 questions, shuffled each game) ──
+const BANK=[
+  {cat:'History',icon:'⚔️',q:'Which Roman emperor split the empire into Eastern and Western halves in 285 AD?',c:["Nero","Diocletian","Constantine","Hadrian"],a:1,x:'Diocletian created the Tetrarchy to make the vast empire more governable.'},
+  {cat:'History',icon:'📜',q:'The Battle of Hastings in 1066 was won by which invading force?',c:["Vikings","Danes","Normans","Visigoths"],a:2,x:'William the Conqueror\'s Norman victory fundamentally changed English language and culture.'},
+  {cat:'History',icon:'🏛️',q:'Which ancient city was buried by the eruption of Mount Vesuvius in 79 AD?',c:["Herculaneum","Naples","Pompeii","Capua"],a:2,x:'Pompeii was preserved almost perfectly under 4-6 meters of volcanic ash.'},
+  {cat:'History',icon:'👑',q:'Saladin, who recaptured Jerusalem in 1187, founded which dynasty?',c:["Fatimid","Abbasid","Ayyubid","Mamluk"],a:2,x:'Saladin became legendary even among Crusaders for his chivalry and military genius.'},
+  {cat:'History',icon:'⚔️',q:'Who founded the Mongol Empire in 1206?',c:["Kublai Khan","Timur","Genghis Khan","Ogodei Khan"],a:2,x:'Genghis Khan united the Mongol tribes and began the greatest land conquest in history.'},
+  {cat:'History',icon:'📜',q:'Which treaty ended the Thirty Years War in 1648?',c:["Treaty of Utrecht","Peace of Westphalia","Treaty of Versailles","Peace of Augsburg"],a:1,x:'The Peace of Westphalia established the modern concept of state sovereignty.'},
+  {cat:'History',icon:'🏛️',q:'The Library of Alexandria was located in which ancient kingdom?',c:["Carthage","Persia","Ptolemaic Egypt","Nubia"],a:2,x:'The library may have held over 400,000 scrolls at its peak.'},
+  {cat:'History',icon:'👑',q:'Which Byzantine empress ruled alongside Justinian I?',c:["Helena","Zoe","Theodora","Irene"],a:2,x:'Theodora rose from humble origins to become one of the most powerful women in Byzantine history.'},
+  {cat:'History',icon:'⚔️',q:'The Black Death entered Europe through which Sicilian port in 1347?',c:["Palermo","Messina","Syracuse","Catania"],a:1,x:'Genoese trading ships docked at Messina, spreading the plague westward.'},
+  {cat:'History',icon:'📜',q:'Which Chinese dynasty built the Grand Canal?',c:["Han","Tang","Sui","Song"],a:2,x:'Emperor Yang of Sui built the 1,776 km canal using over a million laborers.'},
+  {cat:'History',icon:'🏛️',q:'The Aztec capital Tenochtitlan was built on which lake?',c:["Lake Chapala","Lake Texcoco","Lake Patzcuaro","Lake Xochimilco"],a:1,x:'Tenochtitlan was connected to the mainland by three large causeways across Lake Texcoco.'},
+  {cat:'History',icon:'👑',q:'Which Pharaoh moved Egypt\'s capital to Amarna and promoted monotheism?',c:["Ramesses II","Tutankhamun","Akhenaten","Thutmose III"],a:2,x:'Akhenaten replaced the traditional pantheon with worship of the sun disc Aten.'},
+  {cat:'History',icon:'⚔️',q:'Which empire first used a postal relay system called the Yam?',c:["Persian Empire","Roman Empire","Mongol Empire","Ottoman Empire"],a:2,x:'The Mongol Yam used relay stations every 25-30 miles for rapid long-distance communication.'},
+  {cat:'History',icon:'👑',q:'Which Mughal emperor commissioned the Taj Mahal?',c:["Akbar","Aurangzeb","Shah Jahan","Babur"],a:2,x:'Shah Jahan built the Taj Mahal as a mausoleum for his wife Mumtaz Mahal, who died in 1631.'},
+  {cat:'History',icon:'📜',q:'The Hagia Sophia was converted into a mosque after Constantinople fell in which year?',c:["1389","1453","1517","1571"],a:1,x:'Mehmed II converted the great cathedral immediately after Ottoman forces took Constantinople.'},
+  {cat:'History',icon:'🏛️',q:'Which explorer\'s crew first circumnavigated the globe, completing it in 1522?',c:["Vasco da Gama","Juan Sebastian Elcano","Christopher Columbus","Francis Drake"],a:1,x:'Magellan died in the Philippines so Elcano completed the first circumnavigation of Earth.'},
+  {cat:'History',icon:'👑',q:'The French Revolution\'s Reign of Terror was led by which political club?',c:["Girondins","Jacobins","Cordeliers","Thermidorians"],a:1,x:'Robespierre\'s Jacobins oversaw the execution of over 16,000 people during the Terror of 1793-1794.'},
+  {cat:'History',icon:'⚔️',q:'Which battle in 732 AD stopped the Muslim advance into Western Europe?',c:["Battle of Tours","Battle of Manzikert","Battle of Legnano","Battle of the Teutoburg Forest"],a:0,x:'Charles Martel\'s Frankish forces defeated the Umayyad Caliphate halting Islamic expansion westward.'},
+  {cat:'History',icon:'📜',q:'The Meiji Restoration of 1868 rapidly modernized which country?',c:["China","Korea","Japan","Vietnam"],a:2,x:'Japan\'s Meiji era saw rapid industrialization and abolition of the samurai class.'},
+  {cat:'History',icon:'🏛️',q:'Which ancient civilization built Machu Picchu?',c:["Maya","Aztec","Tiwanaku","Inca"],a:3,x:'The Inca built Machu Picchu around 1450 AD; it was unknown to outsiders until 1911.'},
+  {cat:'History',icon:'⚔️',q:'The Code of Hammurabi was written in which script?',c:["Hieroglyphics","Cuneiform","Linear B","Proto-Sinaitic"],a:1,x:'Hammurabi\'s law code was inscribed in Akkadian cuneiform on a basalt stele over 2 meters tall.'},
+  {cat:'History',icon:'📜',q:'Which Venetian merchant brought the first major European account of China and the Mongol court?',c:["Amerigo Vespucci","Bartolomeu Dias","Marco Polo","Giovanni da Pian del Carpine"],a:2,x:'Marco Polo spent 17 years in Kublai Khan\'s court and his book inspired Christopher Columbus.'},
+  {cat:'History',icon:'🏛️',q:'Which ancient Greek philosopher tutored Alexander the Great?',c:["Plato","Socrates","Aristotle","Pythagoras"],a:2,x:'Aristotle tutored the teenage Alexander and helped shape one of history\'s greatest military minds.'},
+  {cat:'History',icon:'👑',q:'Joan of Arc\'s pivotal campaign in 1429 was at which city?',c:["Paris","Reims","Orleans","Bordeaux"],a:2,x:'Joan of Arc\'s leadership at Orleans turned the tide of the Hundred Years War for France.'},
+  {cat:'History',icon:'⚔️',q:'Which Pharaoh built the Great Pyramid of Giza?',c:["Ramesses II","Sneferu","Khufu","Khafre"],a:2,x:'Khufu\'s Great Pyramid stood as the tallest structure on Earth for 3,800 years.'},
+  {cat:'History',icon:'⚔️',q:'Which medieval order of warrior monks defended pilgrims in the Holy Land?',c:["Hospitallers","Teutonic Knights","Templars","Knights of Malta"],a:2,x:'The Knights Templar were founded in 1119 and became enormously wealthy before their suppression in 1312.'},
+  {cat:'History',icon:'📜',q:'The Magna Carta was signed in which year?',c:["1066","1215","1337","1189"],a:1,x:'King John signed Magna Carta at Runnymede in 1215 limiting royal power for the first time.'},
+  {cat:'History',icon:'🏛️',q:'Which dynasty ruled China during construction of most of the Great Wall?',c:["Han","Qin","Ming","Tang"],a:2,x:'The Ming Dynasty rebuilt and extended the Wall using brick and stone between 1368 and 1644.'},
+  {cat:'History',icon:'👑',q:'The Peloponnesian War ended with the defeat of which city-state?',c:["Sparta","Corinth","Athens","Thebes"],a:2,x:'Athens surrendered to Sparta in 404 BC after 27 years of devastating war.'},
+  {cat:'History',icon:'⚔️',q:'Which Roman structure was used for gladiatorial combat and held up to 80,000 spectators?',c:["Circus Maximus","Pantheon","Colosseum","Forum of Trajan"],a:2,x:'The Colosseum was completed in 80 AD and hosted events for over 400 years.'},
+  {cat:'History',icon:'📜',q:'The Spanish Armada was defeated in which year?',c:["1571","1588","1603","1620"],a:1,x:'England\'s smaller but more maneuverable fleet defeated Spain\'s Armada in 1588.'},
+  {cat:'History',icon:'🏛️',q:'Which leader unified most of Europe under one empire by 800 AD?',c:["Otto I","Clovis","Charlemagne","Pepin the Short"],a:2,x:'Charlemagne was crowned Holy Roman Emperor by Pope Leo III on Christmas Day 800 AD.'},
+  {cat:'History',icon:'👑',q:'The printing press was invented by which European?',c:["Roger Bacon","Leonardo da Vinci","Johannes Gutenberg","Aldus Manutius"],a:2,x:'Gutenberg\'s movable type press around 1440 revolutionized the spread of knowledge in Europe.'},
+  {cat:'History',icon:'⚔️',q:'Which country was the first to grant women the right to vote, in 1893?',c:["Australia","Finland","New Zealand","Norway"],a:2,x:'New Zealand was the first self-governing country to grant women the right to vote in national elections.'},
+  {cat:'History',icon:'📜',q:'The Berlin Wall fell in which year?',c:["1987","1989","1991","1993"],a:1,x:'The Berlin Wall fell on November 9 1989 after East Germany opened its borders.'},
+  {cat:'History',icon:'🏛️',q:'Which empire was ruled from Constantinople for over a thousand years?',c:["Roman","Ottoman","Byzantine","Sassanid"],a:2,x:'The Byzantine Empire, the eastern continuation of Rome, lasted from 330 to 1453 AD.'},
+  {cat:'History',icon:'👑',q:'Who was the first European to reach India by sea around Africa?',c:["Christopher Columbus","Amerigo Vespucci","Vasco da Gama","Ferdinand Magellan"],a:2,x:'Vasco da Gama reached Calicut India in 1498 after sailing around the Cape of Good Hope.'},
+  {cat:'History',icon:'⚔️',q:'The Opium Wars of the 19th century were fought between China and which country?',c:["France","Russia","United States","Britain"],a:3,x:'Britain fought two Opium Wars forcing China to open ports and cede Hong Kong.'},
+  {cat:'History',icon:'📜',q:'Which ancient Greek city-state was famous for its militaristic society and warrior culture?',c:["Athens","Corinth","Sparta","Thebes"],a:2,x:'Sparta\'s society was entirely organized around producing elite warriors from childhood.'},
+  {cat:'History',icon:'🏛️',q:'The Cuban Missile Crisis occurred in which year?',c:["1959","1961","1962","1965"],a:2,x:'The 13-day standoff in October 1962 brought the US and USSR closest to nuclear war.'},
+  {cat:'History',icon:'👑',q:'Which Aztec ruler was captured by Hernan Cortes in 1520?',c:["Itzcoatl","Moctezuma II","Cuauhtemoc","Cuitlahuac"],a:1,x:'Moctezuma II initially welcomed Cortes believing him to be the god Quetzalcoatl.'},
+  {cat:'History',icon:'⚔️',q:'The Crusades were launched partly to recapture which holy city?',c:["Constantinople","Antioch","Bethlehem","Jerusalem"],a:3,x:'Pope Urban II called the First Crusade in 1095 to reclaim Jerusalem from Muslim control.'},
+  {cat:'History',icon:'📜',q:'Which document, signed in 1776, declared American independence?',c:["The Constitution","The Mayflower Compact","The Declaration of Independence","The Articles of Confederation"],a:2,x:'The Declaration of Independence was primarily drafted by Thomas Jefferson and signed on July 4 1776.'},
+  {cat:'History',icon:'🏛️',q:'Napoleon was finally defeated at which battle in 1815?',c:["Battle of Leipzig","Battle of Austerlitz","Battle of Waterloo","Battle of Borodino"],a:2,x:'Wellington\'s allied forces defeated Napoleon at Waterloo ending the Napoleonic Wars.'},
+  {cat:'History',icon:'👑',q:'Which civilization created the first known writing system around 3200 BC?',c:["Egyptians","Sumerians","Harappans","Chinese"],a:1,x:'Sumerian cuneiform from ancient Mesopotamia is the earliest known writing system.'},
+  {cat:'History',icon:'⚔️',q:'The Partition of India in 1947 created which two independent nations?',c:["India and Bangladesh","India and Pakistan","India and Ceylon","Pakistan and Bangladesh"],a:1,x:'The British partition of India created India and Pakistan amid massive population displacement and violence.'},
+  {cat:'History',icon:'📜',q:'Which English king was executed in 1649 during the Civil War?',c:["James I","Charles I","Charles II","Henry VIII"],a:1,x:'Charles I was tried for treason and beheaded on January 30 1649 after losing the English Civil War.'},
+  {cat:'History',icon:'🏛️',q:'The Alhambra palace is located in which Spanish city?',c:["Seville","Cordoba","Toledo","Granada"],a:3,x:'The Alhambra was built in Granada as the palace of the Nasrid sultans of al-Andalus.'},
+  {cat:'History',icon:'👑',q:'Which ancient wonder stood at the entrance of the harbor of Rhodes?',c:["The Pharos","The Colossus","The Mausoleum","The Temple of Artemis"],a:1,x:'The Colossus of Rhodes was a giant statue straddling the harbor entrance built around 280 BC.'},
+  {cat:'History',icon:'⚔️',q:'The Holocaust resulted in the systematic murder of approximately how many Jewish people?',c:["1 million","3 million","6 million","9 million"],a:2,x:'Nazi Germany\'s genocide killed approximately six million Jewish people between 1941 and 1945.'},
+  {cat:'History',icon:'📜',q:'Which queen ruled England for 45 years and presided over the Elizabethan era?',c:["Mary I","Anne","Victoria","Elizabeth I"],a:3,x:'Elizabeth I ruled from 1558 to 1603 overseeing England\'s golden age of exploration and culture.'},
+  {cat:'History',icon:'🏛️',q:'The Great Wall of China stretches approximately how many kilometers?',c:["5,000","10,000","21,000","40,000"],a:2,x:'Including all sections and branches the Great Wall stretches over 21,000 km.'},
+  {cat:'History',icon:'👑',q:'Which 19th century movement sought to end the transatlantic slave trade?',c:["Suffragism","Abolitionism","Chartism","Luddism"],a:1,x:'Abolitionists in Britain and America campaigned to end slavery and the slave trade.'},
+  {cat:'History',icon:'⚔️',q:'The Boxer Rebellion of 1900 was an uprising against foreign influence in which country?',c:["Japan","Korea","China","Vietnam"],a:2,x:'Chinese nationalists known as Boxers attacked foreign embassies and Christian missionaries.'},
+  {cat:'History',icon:'📜',q:'Which European nation colonized most of Brazil?',c:["Spain","Holland","France","Portugal"],a:3,x:'Portugal colonized Brazil from 1500 following Pedro Cabral\'s landing on the Brazilian coast.'},
+  {cat:'History',icon:'🏛️',q:'The first atomic bomb was dropped on which Japanese city in 1945?',c:["Nagasaki","Tokyo","Hiroshima","Osaka"],a:2,x:'The US dropped Little Boy on Hiroshima on August 6 1945 killing an estimated 70,000-80,000 instantly.'},
+  {cat:'History',icon:'👑',q:'Which ruler of ancient Persia led an invasion of Greece in 480 BC?',c:["Cyrus the Great","Darius I","Xerxes I","Artaxerxes I"],a:2,x:'Xerxes I led a massive Persian army into Greece but was ultimately defeated at Plataea.'},
+  {cat:'History',icon:'⚔️',q:'The Russian Revolution of 1917 overthrew which ruler?',c:["Alexander II","Nicholas I","Nicholas II","Alexander III"],a:2,x:'Tsar Nicholas II abdicated in February 1917 and was executed with his family in July 1918.'},
+  {cat:'History',icon:'📜',q:'Which ancient civilization invented the concept of democracy?',c:["Romans","Mesopotamians","Greeks","Persians"],a:2,x:'Athens under Cleisthenes introduced democratic reforms around 508 BC making it the birthplace of democracy.'},
+  {cat:'History',icon:'🏛️',q:'Which empire at its peak in the 16th century stretched from Vienna to the Persian Gulf?',c:["Byzantine","Mongol","Ottoman","Safavid"],a:2,x:'The Ottoman Empire at its height under Suleiman the Magnificent controlled three continents.'},
+  {cat:'History',icon:'👑',q:'The Long March of 1934-1935 was undertaken by which group?',c:["Nationalist Chinese","Chinese Communist Party","Japanese Imperial Army","Korean resistance fighters"],a:1,x:'The Long March was a military retreat by Mao Zedong\'s Red Army covering 9,000 km.'},
+  {cat:'History',icon:'⚔️',q:'Which Roman general crossed the Rubicon river in 49 BC triggering civil war?',c:["Pompey","Crassus","Mark Antony","Julius Caesar"],a:3,x:'Caesar\'s crossing of the Rubicon with his army was an act of war against the Roman Senate.'},
+  {cat:'History',icon:'📜',q:'The Zulu Kingdom\'s greatest military victory against British forces was at which battle in 1879?',c:["Battle of Rorke\'s Drift","Battle of Ulundi","Battle of Isandlwana","Battle of Blood River"],a:2,x:'At Isandlwana the Zulu army killed over 1,300 British and allied troops in one of Britain\'s worst colonial defeats.'},
+  {cat:'History',icon:'🏛️',q:'Which 14th century Mongol conqueror built an empire stretching from Turkey to India?',c:["Kublai Khan","Timur","Batu Khan","Hulagu Khan"],a:1,x:'Timur (Tamerlane) created a vast empire and is estimated to have caused the deaths of 17 million people.'},
+  {cat:'History',icon:'👑',q:'The Rosetta Stone was key to deciphering which ancient language?',c:["Sumerian","Minoan","Egyptian hieroglyphics","Linear A"],a:2,x:'The Rosetta Stone\'s three scripts including Greek allowed scholars to finally decode hieroglyphics in 1822.'},
+  {cat:'History',icon:'⚔️',q:'Which country first landed a human on the moon in 1969?',c:["Soviet Union","France","United Kingdom","United States"],a:3,x:'NASA\'s Apollo 11 mission landed Neil Armstrong and Buzz Aldrin on the Moon on July 20 1969.'},
+  {cat:'History',icon:'📜',q:'The Renaissance began in which Italian city?',c:["Rome","Venice","Milan","Florence"],a:3,x:'Florence under the Medici family became the birthplace of the Renaissance in the 14th-15th centuries.'},
+  {cat:'History',icon:'🏛️',q:'Which war ended with the Treaty of Versailles in 1919?',c:["World War II","The Franco-Prussian War","World War I","The Crimean War"],a:2,x:'The Treaty of Versailles formally ended WWI and imposed heavy reparations on Germany.'},
+  {cat:'History',icon:'👑',q:'Cleopatra was the last ruler of which dynasty?',c:["Ramessid","Saite","Ptolemaic","Thutmosid"],a:2,x:'Cleopatra VII was the last ruler of the Ptolemaic dynasty before Egypt became a Roman province.'},
+  {cat:'History',icon:'⚔️',q:'Which empire built the Colosseum in Rome?',c:["Greek","Byzantine","Roman","Etruscan"],a:2,x:'The Roman Colosseum was built between 70-80 AD under Emperor Vespasian and his son Titus.'},
+  {cat:'History',icon:'📜',q:'The storming of which prison began the French Revolution in 1789?',c:["The Louvre","Versailles","The Bastille","Les Invalides"],a:2,x:'The storming of the Bastille on July 14 1789 became the symbolic start of the French Revolution.'},
+  {cat:'History',icon:'🏛️',q:'Which ancient trade route connected China to the Mediterranean world?',c:["Amber Road","Incense Route","Silk Road","Spice Route"],a:2,x:'The Silk Road was a network of trade routes active from 130 BC to 1453 AD linking East and West.'},
+  {cat:'History',icon:'👑',q:'The Battle of Thermopylae in 480 BC saw 300 Spartans hold off which invading army?',c:["Roman","Macedonian","Persian","Carthaginian"],a:2,x:'King Leonidas led 300 Spartans and thousands of allies against Xerxes\'s massive Persian army.'},
+  {cat:'History',icon:'⚔️',q:'Which 19th century war was fought between northern and southern American states?',c:["War of 1812","Mexican-American War","American Civil War","Spanish-American War"],a:2,x:'The American Civil War from 1861-1865 resulted in the abolition of slavery and 620,000 deaths.'},
+  {cat:'History',icon:'📜',q:'Which emperor built Hadrian\'s Wall across northern Britain?',c:["Trajan","Hadrian","Claudius","Nero"],a:1,x:'Emperor Hadrian began constructing the 73-mile wall in 122 AD to mark the northern frontier of Roman Britain.'},
+  {cat:'History',icon:'🏛️',q:'The Bolshevik Revolution of 1917 was led by which figure?',c:["Stalin","Trotsky","Lenin","Kerensky"],a:2,x:'Vladimir Lenin led the Bolsheviks to seize power in October 1917 establishing Soviet Russia.'},
+  {cat:'History',icon:'👑',q:'Which dynasty first unified China in 221 BC?',c:["Han","Zhou","Qin","Shang"],a:2,x:'Qin Shi Huang unified the warring states and became the first emperor of a unified China.'},
+  {cat:'History',icon:'⚔️',q:'The Suez Canal connects which two bodies of water?',c:["Atlantic and Pacific","Red Sea and Mediterranean","Persian Gulf and Arabian Sea","Black Sea and Caspian Sea"],a:1,x:'The Suez Canal opened in 1869 connecting the Mediterranean to the Red Sea eliminating the journey around Africa.'},
+  {cat:'History',icon:'📜',q:'Which medieval plague killed an estimated one-third of Europe\'s population?',c:["Smallpox","Cholera","Typhus","Black Death"],a:3,x:'The Black Death bubonic plague of 1347-1351 killed 30-60% of Europe\'s population.'},
+  {cat:'History',icon:'🏛️',q:'The Scramble for Africa saw European powers divide the continent primarily in which decade?',c:["1860s","1870s","1880s","1890s"],a:2,x:'The Berlin Conference of 1884-1885 formalized the European division of Africa with no African input.'},
+  {cat:'History',icon:'👑',q:'Which ancient people built Stonehenge in England?',c:["Celts","Romans","Neolithic Britons","Druids"],a:2,x:'Stonehenge was built in stages by Neolithic peoples between 3000 and 1500 BC.'},
+  {cat:'History',icon:'⚔️',q:'Which country suffered the most military deaths in World War II?',c:["Germany","United States","China","Soviet Union"],a:3,x:'The Soviet Union lost an estimated 8-9 million military personnel in World War II.'},
+  {cat:'History',icon:'📜',q:'The Trojan War in Greek mythology was fought over which woman?',c:["Penelope","Clytemnestra","Helen","Cassandra"],a:2,x:'Helen\'s abduction by Paris of Troy supposedly launched a thousand ships and a decade-long war.'},
+  {cat:'History',icon:'🏛️',q:'Which African empire controlled the gold and salt trade in West Africa from 300-1200 AD?',c:["Mali Empire","Songhai Empire","Ghana Empire","Kanem Empire"],a:2,x:'The Ghana Empire dominated trans-Saharan trade routes making it extraordinarily wealthy.'},
+  {cat:'History',icon:'👑',q:'Who wrote the 95 Theses that began the Protestant Reformation in 1517?',c:["John Calvin","Henry VIII","Erasmus","Martin Luther"],a:3,x:'Martin Luther nailed his 95 Theses to a church door in Wittenberg challenging Catholic practices.'},
+  {cat:'History',icon:'⚔️',q:'The Aztec Empire\'s capital Tenochtitlan was founded in which year?',c:["1168","1250","1325","1400"],a:2,x:'The Aztecs founded Tenochtitlan in 1325 on an island in Lake Texcoco where they saw an eagle on a cactus.'},
+  {cat:'History',icon:'📜',q:'Which explorer made four voyages to the Americas between 1492 and 1504?',c:["Amerigo Vespucci","Hernando de Soto","John Cabot","Christopher Columbus"],a:3,x:'Columbus made four voyages to the Caribbean and Central/South America never knowing he had found a new continent.'},
+  {cat:'History',icon:'🏛️',q:'The Crimean War of 1853-1856 was fought primarily between Russia and which alliance?',c:["Austria and Prussia","Britain France and Ottoman Empire","United States and Britain","France and Spain"],a:1,x:'Britain France and the Ottoman Empire allied to halt Russian expansion into Ottoman territory.'},
+  {cat:'History',icon:'👑',q:'Which ancient Egyptian queen ruled as pharaoh in her own right for about 20 years?',c:["Cleopatra","Nefertiti","Hatshepsut","Nefertari"],a:2,x:'Hatshepsut ruled as pharaoh in the 15th century BC and led successful trade expeditions to Punt.'},
+  {cat:'History',icon:'⚔️',q:'The Gutenberg Bible was one of the first major books printed with movable type. In which decade?',c:["1430s","1440s","1450s","1460s"],a:2,x:'Gutenberg printed his famous Bible around 1455 in Mainz Germany.'},
+  {cat:'History',icon:'📜',q:'Which ancient civilization created the first system of laws we know of?',c:["Egyptians","Babylonians","Sumerians","Hittites"],a:2,x:'The Sumerians created early law codes predating Hammurabi by centuries.'},
+  {cat:'History',icon:'🏛️',q:'Which city was the capital of the Byzantine Empire?',c:["Rome","Athens","Antioch","Constantinople"],a:3,x:'Constantinople modern Istanbul was founded by Constantine I in 330 AD as the eastern Roman capital.'},
+  {cat:'History',icon:'👑',q:'Who led the successful slave revolt in Haiti in 1791?',c:["Jean-Jacques Dessalines","Henri Christophe","Toussaint Louverture","Alexandre Petion"],a:2,x:'Toussaint Louverture led the Haitian Revolution the only successful slave revolt to establish an independent nation.'},
+  {cat:'History',icon:'⚔️',q:'The Battle of Agincourt in 1415 was a famous English victory over which nation?',c:["Spain","Scotland","France","Germany"],a:2,x:'Henry V\'s English longbowmen decimated the French cavalry at Agincourt despite being heavily outnumbered.'},
+  {cat:'History',icon:'📜',q:'Which ancient civilization first used iron tools and weapons around 1200 BC?',c:["Greeks","Egyptians","Hittites","Assyrians"],a:2,x:'The Hittites were among the earliest to use iron weapons giving them a military advantage.'},
+  {cat:'History',icon:'🏛️',q:'The League of Nations was established after which war?',c:["World War II","The Crimean War","The Boer War","World War I"],a:3,x:'The League of Nations was founded in 1920 following WWI as the first international peacekeeping organization.'},
+  {cat:'History',icon:'👑',q:'Which explorer claimed Australia for Britain in 1770?',c:["Abel Tasman","Francis Drake","James Cook","Matthew Flinders"],a:2,x:'Captain James Cook sailed along Australia\'s eastern coast and claimed it for Britain on his first voyage.'},
+  {cat:'History',icon:'⚔️',q:'The Zulu War of 1879 took place in which modern country?',c:["Zimbabwe","Kenya","South Africa","Mozambique"],a:2,x:'The Anglo-Zulu War was fought in KwaZulu-Natal region of what is now South Africa.'},
+  {cat:'History',icon:'📜',q:'Which war was sparked by the assassination of Archduke Franz Ferdinand in 1914?',c:["World War II","The Balkan Wars","World War I","The Russian Revolution"],a:2,x:'Franz Ferdinand\'s assassination in Sarajevo triggered the alliance system leading to World War I.'},
+  {cat:'History',icon:'🏛️',q:'The Forbidden City in Beijing was built during which dynasty?',c:["Song","Yuan","Ming","Qing"],a:2,x:'The Forbidden City was built between 1406-1420 during the Ming Dynasty under Emperor Yongle.'},
+  {cat:'History',icon:'👑',q:'Which Carthaginian general famously crossed the Alps with war elephants?',c:["Hasdrubal","Hamilcar","Hannibal","Mago"],a:2,x:'Hannibal Barca crossed the Alps in 218 BC and nearly defeated Rome in the Second Punic War.'},
+  {cat:'History',icon:'⚔️',q:'The apartheid system in South Africa was officially ended in which year?',c:["1990","1991","1992","1994"],a:3,x:'South Africa held its first fully democratic elections in 1994 with Nelson Mandela elected president.'},
+  {cat:'History',icon:'📜',q:'Which civilization built the ancient city of Carthage in North Africa?',c:["Greeks","Berbers","Romans","Phoenicians"],a:3,x:'Carthage was founded by Phoenician settlers around 814 BC and became a major Mediterranean power.'},
+  {cat:'History',icon:'🏛️',q:'The Trail of Tears in the 1830s forced which group from their ancestral lands?',c:["Apache tribes","Eastern Native American tribes","Plains tribes","Pacific Northwest tribes"],a:1,x:'The Indian Removal Act forced five major tribes including the Cherokee on deadly marches westward.'},
+  {cat:'History',icon:'👑',q:'Who wrote The Prince a guide to political power published in 1532?',c:["Dante Alighieri","Niccolo Machiavelli","Leonardo da Vinci","Galileo Galilei"],a:1,x:'Machiavelli\'s The Prince analyzed how rulers gain and maintain power by any means necessary.'},
+  {cat:'History',icon:'⚔️',q:'Which South American civilization had no written language but built Machu Picchu?',c:["Aztec","Olmec","Inca","Maya"],a:2,x:'The Inca kept records using knotted strings called quipus rather than a written language.'},
+  {cat:'History',icon:'📜',q:'The Dreyfus Affair of the 1890s was a political scandal involving antisemitism in which country?',c:["Germany","Austria","Russia","France"],a:3,x:'French army officer Alfred Dreyfus was wrongly convicted of treason in a case exposing widespread antisemitism.'},
+  {cat:'History',icon:'🏛️',q:'Which Indian leader used nonviolent civil disobedience to resist British colonial rule?',c:["Jawaharlal Nehru","Subhas Chandra Bose","Bhagat Singh","Mahatma Gandhi"],a:3,x:'Gandhi\'s philosophy of ahimsa nonviolent resistance inspired independence movements worldwide.'},
+  {cat:'History',icon:'👑',q:'Genghis Khan\'s capital city was which location?',c:["Samarkand","Karakorum","Beijing","Tabriz"],a:1,x:'Karakorum in modern Mongolia was established as the capital of the Mongol Empire by Genghis Khan.'},
+  {cat:'History',icon:'⚔️',q:'The Reformation Parliament of Henry VIII broke from Rome primarily over which issue?',c:["Church corruption","Papal taxation","Henry\'s desire for an annulment","The sale of indulgences"],a:2,x:'Henry VIII sought an annulment from Catherine of Aragon which Pope Clement VII refused to grant.'},
+  {cat:'History',icon:'📜',q:'Which ancient Greek historian is often called the Father of History?',c:["Thucydides","Plutarch","Xenophon","Herodotus"],a:3,x:'Herodotus of Halicarnassus wrote the Histories the earliest surviving major prose work in Western literature.'},
+  {cat:'History',icon:'🏛️',q:'The Partition of Africa at the Berlin Conference was organized primarily by which two powers?',c:["Britain and France","Germany and Austria","Germany and Britain","Britain and Belgium"],a:0,x:'Britain and France took the largest shares of Africa though Germany and Belgium also claimed significant territories.'},
+  {cat:'History',icon:'👑',q:'Which general led the Allied forces on D-Day in 1944?',c:["George Patton","Bernard Montgomery","Dwight Eisenhower","Omar Bradley"],a:2,x:'General Eisenhower as Supreme Allied Commander planned and oversaw Operation Overlord the D-Day invasion.'},
+  {cat:'History',icon:'⚔️',q:'The Byzantine Empire used a secret weapon called Greek fire. What was it?',c:["An early form of gunpowder","A highly flammable liquid projected at enemies","Poisoned arrows","A type of siege catapult"],a:1,x:'Greek fire was a flammable liquid that could burn on water and was almost impossible to extinguish.'},
+  {cat:'History',icon:'📜',q:'Which Inca emperor was captured and killed by Francisco Pizarro in 1533?',c:["Manco Inca","Huascar","Tupac Inca","Atahualpa"],a:3,x:'Pizarro captured Atahualpa demanded a massive ransom in gold and silver then executed him anyway.'},
+  {cat:'History',icon:'🏛️',q:'The Versailles Palace was built as the royal residence of which French king?',c:["Louis XIV","Louis XV","Francis I","Henry IV"],a:0,x:'Louis XIV the Sun King built Versailles and moved the French court there in 1682.'},
+  {cat:'History',icon:'👑',q:'Which ancient civilization is credited with inventing the wheel around 3500 BC?',c:["Egyptians","Sumerians","Chinese","Indus Valley"],a:1,x:'The Sumerians of ancient Mesopotamia are credited with the earliest use of the wheel.'},
+  {cat:'History',icon:'⚔️',q:'The Peloponnesian War was primarily fought between which two city-states?',c:["Sparta and Corinth","Athens and Thebes","Athens and Sparta","Corinth and Athens"],a:2,x:'The Peloponnesian War from 431-404 BC pitted Athens against Sparta and its allies.'},
+  {cat:'History',icon:'📜',q:'The dissolution of the Soviet Union occurred in which year?',c:["1989","1990","1991","1992"],a:2,x:'The Soviet Union formally dissolved on December 25 1991 when Gorbachev resigned as president.'},
+  {cat:'History',icon:'🏛️',q:'Which Roman emperor first legalized Christianity in the Roman Empire?',c:["Theodosius","Augustus","Constantine I","Diocletian"],a:2,x:'Constantine I issued the Edict of Milan in 313 AD legalizing Christianity throughout the empire.'},
+  {cat:'History',icon:'👑',q:'The Panama Canal connects which two oceans?',c:["Atlantic and Indian","Pacific and Arctic","Atlantic and Pacific","Indian and Pacific"],a:2,x:'The Panama Canal opened in 1914 allowing ships to pass between the Atlantic and Pacific Oceans.'},
+  {cat:'History',icon:'⚔️',q:'Which medieval university founded in 1088 is considered the world\'s oldest?',c:["University of Paris","University of Bologna","University of Oxford","University of Salamanca"],a:1,x:'The University of Bologna founded in 1088 is the oldest continuously operating university in the world.'},
+  {cat:'History',icon:'📜',q:'The Korean War ended with an armistice in which year?',c:["1950","1951","1953","1955"],a:2,x:'The Korean War armistice was signed on July 27 1953 creating the demilitarized zone that still exists today.'},
+  {cat:'History',icon:'🏛️',q:'Which famous Venetian explorer traveled to China in the 13th century?',c:["Giovanni Caboto","Niccolo di Conti","Marco Polo","Antonio Pigafetta"],a:2,x:'Marco Polo traveled to China and served in Kublai Khan\'s court returning to Venice with accounts of Eastern wonders.'},
+  {cat:'History',icon:'👑',q:'The first successful powered airplane flight was made by which brothers?',c:["Langley brothers","Curtis brothers","Wright brothers","Bell brothers"],a:2,x:'Orville and Wilbur Wright made the first powered flight at Kitty Hawk North Carolina on December 17 1903.'},
+  {cat:'History',icon:'⚔️',q:'Which ancient wonder was located on the island of Rhodes?',c:["Pharos Lighthouse","Temple of Artemis","Colossus","Mausoleum"],a:2,x:'The Colossus of Rhodes a giant statue of the sun god Helios was built around 280 BC.'},
+  {cat:'History',icon:'📜',q:'The Glorious Revolution of 1688 placed which monarchs on the English throne?',c:["Charles II and Catherine","James I and Anne","William and Mary","George I and Sophia"],a:2,x:'William III of Orange and Mary II replaced the Catholic James II in a largely bloodless revolution.'},
+  {cat:'History',icon:'🏛️',q:'Which North African general crossed the Alps with elephants to attack Rome?',c:["Scipio","Mago","Hannibal","Hasdrubal"],a:2,x:'Hannibal Barca\'s audacious crossing of the Alps in 218 BC shocked the Roman Republic.'},
+  {cat:'History',icon:'👑',q:'The Eighty Years War resulted in the independence of which modern country?',c:["Belgium","Luxembourg","Netherlands","Denmark"],a:2,x:'The Dutch Republic gained independence from Spanish rule after the Eighty Years War from 1568-1648.'},
+  {cat:'History',icon:'⚔️',q:'The Acropolis in Athens was primarily a sacred site dedicated to which goddess?',c:["Hera","Artemis","Aphrodite","Athena"],a:3,x:'The Parthenon on the Acropolis was built as a temple to Athena the patron goddess of Athens.'},
+  {cat:'History',icon:'📜',q:'Who was the first president of the United States?',c:["John Adams","Benjamin Franklin","Thomas Jefferson","George Washington"],a:3,x:'George Washington served as the first US president from 1789-1797 after leading the Continental Army.'},
+  {cat:'History',icon:'🏛️',q:'Which 20th century Chinese political figure founded the People\'s Republic of China in 1949?',c:["Deng Xiaoping","Zhou Enlai","Mao Zedong","Chiang Kai-shek"],a:2,x:'Mao Zedong proclaimed the People\'s Republic of China on October 1 1949 after defeating the Nationalists.'},
+  {cat:'History',icon:'👑',q:'The Great Fire of London burned for how many days in 1666?',c:["2","4","7","10"],a:1,x:'The Great Fire burned from September 2-5 1666 destroying 13,200 houses and 87 churches.'},
+  {cat:'History',icon:'⚔️',q:'Which ancient empire built the famous Royal Road stretching from Sardis to Susa?',c:["Babylonian","Macedonian","Roman","Persian"],a:3,x:'The Persian Royal Road stretched 2,700 km and allowed messages to travel from one end to the other in 9 days.'},
+  {cat:'History',icon:'📜',q:'The Shogunate period of Japan lasted roughly how many centuries?',c:["3","5","7","10"],a:2,x:'Japanese shoguns effectively ruled from 1185 to 1868 a period of roughly seven centuries.'},
+  {cat:'History',icon:'🏛️',q:'Which empire was ruled by Suleiman the Magnificent in the 16th century?',c:["Safavid","Mughal","Ottoman","Abbasid"],a:2,x:'Suleiman I ruled the Ottoman Empire from 1520-1566 its longest-reigning and most powerful sultan.'},
+  {cat:'History',icon:'👑',q:'The colonization of the Americas began after Columbus\'s voyage in which year?',c:["1488","1492","1498","1502"],a:1,x:'Columbus\'s first voyage in 1492 opened the Americas to European colonization and the Columbian Exchange.'},
+  {cat:'History',icon:'⚔️',q:'Which battle ended the American Revolutionary War?',c:["Battle of Bunker Hill","Battle of Saratoga","Battle of Valley Forge","Battle of Yorktown"],a:3,x:'Cornwallis\'s surrender at Yorktown in 1781 effectively ended the American Revolutionary War.'},
+  {cat:'History',icon:'📜',q:'The ancient city of Babylon was located in which modern country?',c:["Iran","Syria","Turkey","Iraq"],a:3,x:'Ancient Babylon was located in Mesopotamia near the modern city of Hillah in Iraq.'},
+  {cat:'History',icon:'🏛️',q:'Which empire controlled Egypt before Alexander the Great conquered it in 332 BC?',c:["Assyrian","Hittite","Persian","Babylonian"],a:2,x:'The Persian Achaemenid Empire controlled Egypt until Alexander defeated Darius III and was welcomed as a liberator.'},
+  {cat:'History',icon:'👑',q:'The Taiping Rebellion of 1850-1864 in China resulted in how many deaths?',c:["500,000","5 million","20 million","50 million"],a:2,x:'The Taiping Rebellion was one of the deadliest conflicts in history with 20-30 million deaths.'},
+  {cat:'History',icon:'⚔️',q:'Which English explorer claimed Nova Scotia and Newfoundland for England in 1497?',c:["Walter Raleigh","Martin Frobisher","John Cabot","Henry Hudson"],a:2,x:'John Cabot sailing from Bristol reached North America in 1497 just five years after Columbus.'},
+  {cat:'History',icon:'📜',q:'The Thirty Years War was primarily fought in which region?',c:["Italy","France","Holy Roman Empire","Iberia"],a:2,x:'The Thirty Years War from 1618-1648 was primarily fought across the Holy Roman Empire in central Europe.'},
+  {cat:'History',icon:'🏛️',q:'Which battle is considered the turning point of World War II on the Eastern Front?',c:["Battle of Kursk","Battle of Moscow","Battle of Stalingrad","Battle of Kiev"],a:2,x:'The Battle of Stalingrad from 1942-1943 resulted in the first major German defeat and captured 300,000 soldiers.'},
+  {cat:'History',icon:'👑',q:'Who was the last emperor of China?',c:["Guangxu","Puyi","Xuantong","Tongzhi"],a:1,x:'Puyi was the last emperor of China abdicating in 1912; he later became a puppet ruler of Manchukuo.'},
+  {cat:'History',icon:'⚔️',q:'The Versailles Treaty blamed World War I entirely on which country causing resentment that fueled WWII?',c:["Austria","Ottoman Empire","Germany","Hungary"],a:2,x:'The war guilt clause forced Germany to accept sole responsibility and pay massive reparations.'},
+  {cat:'History',icon:'📜',q:'Which ancient Greek mathematician calculated the circumference of the Earth with remarkable accuracy?',c:["Pythagoras","Archimedes","Euclid","Eratosthenes"],a:3,x:'Eratosthenes calculated Earth\'s circumference around 240 BC using shadows and geometry to within 2% accuracy.'},
+  {cat:'History',icon:'🏛️',q:'The Mayan Long Count calendar famously ended a cycle in which year?',c:["2000","2009","2012","2020"],a:2,x:'The Maya Long Count calendar\'s 5,126-year cycle ended on December 21 2012 sparking apocalypse fears.'},
+  {cat:'History',icon:'👑',q:'Which African leader defeated Italian forces at the Battle of Adwa in 1896?',c:["Menelik I","Haile Selassie","Menelik II","Yohannes IV"],a:2,x:'Emperor Menelik II led Ethiopian forces to decisively defeat Italy maintaining Ethiopia\'s independence.'},
+  {cat:'History',icon:'⚔️',q:'The Zimmermann Telegram in 1917 proposed an alliance between Germany and which country against the US?',c:["Austria","Ottoman Empire","Mexico","Japan"],a:2,x:'Germany\'s offer of US territory to Mexico in exchange for alliance helped bring America into WWI.'},
+  {cat:'History',icon:'📜',q:'Which ancient city was the capital of the Assyrian Empire at its height?',c:["Babylon","Persepolis","Nineveh","Ur"],a:2,x:'Nineveh in modern Iraq was the largest city in the world around 700 BC under Sennacherib.'},
+  {cat:'History',icon:'🏛️',q:'The Great Schism of 1054 divided Christianity into which two branches?',c:["Catholic and Protestant","Orthodox and Protestant","Catholic and Orthodox","Coptic and Catholic"],a:2,x:'The East-West Schism split Christianity into Roman Catholic in the West and Eastern Orthodox in the East.'},
+  {cat:'History',icon:'👑',q:'Which leader launched China\'s Cultural Revolution in 1966?',c:["Deng Xiaoping","Mao Zedong","Zhou Enlai","Liu Shaoqi"],a:1,x:'Mao Zedong launched the Cultural Revolution targeting perceived capitalist and traditional elements in Chinese society.'},
+  {cat:'History',icon:'⚔️',q:'The ancient Persian capital Persepolis was destroyed by which conqueror?',c:["Genghis Khan","Timur","Alexander the Great","Cyrus the Great"],a:2,x:'Alexander the Great burned Persepolis in 330 BC reportedly in revenge for the Persian burning of Athens.'},
+  {cat:'History',icon:'📜',q:'Which South African president served 27 years in prison before leading his nation?',c:["Steve Biko","Desmond Tutu","Walter Sisulu","Nelson Mandela"],a:3,x:'Nelson Mandela was imprisoned from 1964-1990 before becoming South Africa\'s first democratically elected president.'},
+  {cat:'History',icon:'🏛️',q:'The Ming Dynasty\'s Yongle Emperor moved China\'s capital from Nanjing to which city?',c:["Shanghai","Xi\'an","Hangzhou","Beijing"],a:3,x:'Emperor Yongle moved the capital to Beijing around 1420 and built the Forbidden City there.'},
+  {cat:'History',icon:'👑',q:'Which Roman general and statesman was assassinated on the Ides of March 44 BC?',c:["Pompey","Marcus Brutus","Julius Caesar","Mark Antony"],a:2,x:'Julius Caesar was stabbed 23 times in the Senate by conspirators including Brutus and Cassius.'},
+  {cat:'History',icon:'⚔️',q:'The Battle of Thermopylae took place during which war?',c:["Peloponnesian War","Persian Wars","Macedonian War","Corinthian War"],a:1,x:'Thermopylae was fought in 480 BC during the second Persian invasion of Greece led by Xerxes.'},
+  {cat:'History',icon:'📜',q:'Which 18th century revolution overthrew the French monarchy?',c:["Glorious Revolution","American Revolution","French Revolution","Industrial Revolution"],a:2,x:'The French Revolution beginning in 1789 abolished the monarchy and eventually led to Napoleon\'s rise.'},
+  {cat:'History',icon:'🏛️',q:'The ancient Indus Valley civilization flourished in which modern countries?',c:["India and Bangladesh","Pakistan and India","Afghanistan and Iran","India and Sri Lanka"],a:1,x:'The Indus Valley civilization centered on modern Pakistan and northwest India from 3300-1300 BC.'},
+  {cat:'History',icon:'👑',q:'Which English king signed the Magna Carta under pressure from his barons?',c:["Henry III","Richard I","John I","Edward I"],a:2,x:'King John signed the Magna Carta at Runnymede in 1215 after barons rebelled against his excessive rule.'},
+  {cat:'History',icon:'⚔️',q:'The Cold War arms race was primarily between which two superpowers?',c:["US and China","Soviet Union and China","US and Soviet Union","Britain and Soviet Union"],a:2,x:'The Cold War nuclear arms race between the US and USSR defined global politics from 1947-1991.'},
+  {cat:'History',icon:'📜',q:'Which ancient Greek city famously expelled its citizens who became too powerful through a process called ostracism?',c:["Sparta","Corinth","Athens","Thebes"],a:2,x:'Athens allowed citizens to vote annually to banish any individual deemed a threat to democracy for 10 years.'},
+  {cat:'History',icon:'🏛️',q:'The Medici family were powerful patrons of art and rulers of which Italian city-state?',c:["Venice","Milan","Florence","Genoa"],a:2,x:'The Medici of Florence were among the greatest patrons of Renaissance art including Leonardo and Michelangelo.'},
+  {cat:'History',icon:'👑',q:'Who was the first woman to win a Nobel Prize in 1903?',c:["Rosalind Franklin","Lise Meitner","Marie Curie","Irene Joliot-Curie"],a:2,x:'Marie Curie won the Nobel Prize in Physics in 1903 and later won a second Nobel in Chemistry in 1911.'},
+  {cat:'History',icon:'⚔️',q:'The Seven Years War from 1756-1763 is sometimes called the first what?',c:["Continental war","World war","Colonial war","Naval war"],a:1,x:'The Seven Years War was fought across five continents making it arguably the first truly global conflict.'},
+  {cat:'History',icon:'📜',q:'Which ancient wonder was located in Babylon?',c:["Temple of Artemis","Lighthouse of Alexandria","Colossus of Rhodes","Hanging Gardens"],a:3,x:'The Hanging Gardens of Babylon one of the Seven Wonders of the Ancient World may have been built by Nebuchadnezzar II.'},
+  {cat:'History',icon:'📜',q:'Which ancient civilization first used a 365-day calendar?',c:["Sumerians","Greeks","Babylonians","Egyptians"],a:3,x:'The ancient Egyptians developed one of the first 365-day calendars based on the flooding of the Nile.'},
+  {cat:'History',icon:'⚔️',q:'The Thirty Years War began as a conflict over which issue?',c:["Colonial territory","Trade routes","Religion","Succession"],a:2,x:'The Thirty Years War began as a conflict between Catholic and Protestant states in the Holy Roman Empire.'},
+  {cat:'History',icon:'👑',q:'Which medieval empire stretched from Spain to Central Asia under Suleiman the Magnificent?',c:["Mongol","Byzantine","Safavid","Ottoman"],a:3,x:'The Ottoman Empire under Suleiman I controlled three continents at its 16th-century peak.'},
+  {cat:'History',icon:'🏛️',q:'Who was the first female Prime Minister of the United Kingdom?',c:["Theresa May","Barbara Castle","Shirley Williams","Margaret Thatcher"],a:3,x:'Margaret Thatcher served as UK Prime Minister from 1979 to 1990 known as the Iron Lady.'},
+  {cat:'History',icon:'⚔️',q:'The Khmer Empire built which famous temple complex in Cambodia?',c:["Borobudur","Prambanan","Angkor Wat","Ta Prohm"],a:2,x:'Angkor Wat built in the 12th century is the largest religious monument in the world.'},
+  {cat:'History',icon:'📜',q:'Which 16th-century Japanese leader unified Japan after decades of civil war?',c:["Tokugawa Ieyasu","Oda Nobunaga","Toyotomi Hideyoshi","Date Masamune"],a:2,x:'Toyotomi Hideyoshi unified Japan after the Sengoku period through military conquest and political maneuvering.'},
+  {cat:'History',icon:'🏛️',q:'The Great Leap Forward of 1958-1962 in China caused the deaths of how many people?',c:["500,000","5 million","15-55 million","100 million"],a:2,x:'Mao\'s Great Leap Forward caused a famine killing an estimated 15-55 million people.'},
+  {cat:'History',icon:'👑',q:'Which ancient Greek city founded colonies as far apart as Spain and the Black Sea coast?',c:["Corinth","Athens","Sparta","Miletus"],a:1,x:'Athens and other Greek city-states founded colonies throughout the Mediterranean and Black Sea regions.'},
+  {cat:'History',icon:'⚔️',q:'The Rwandan Genocide of 1994 saw which ethnic group massacre another?',c:["Tutsi killing Hutu","Hutu killing Tutsi","Both equally","Foreign militias"],a:1,x:'Hutu extremists massacred approximately 800,000 Tutsi and moderate Hutu over 100 days in 1994.'},
+  {cat:'History',icon:'📜',q:'Which civilization built the world\'s first cities including Uruk and Eridu?',c:["Egyptians","Harappans","Sumerians","Babylonians"],a:2,x:'The Sumerians built the world\'s earliest cities in Mesopotamia around 4500-3100 BC.'},
+  {cat:'History',icon:'🏛️',q:'The Sepoy Mutiny of 1857 was an uprising against colonial rule in which country?',c:["China","Egypt","India","South Africa"],a:2,x:'The Indian Rebellion of 1857 (Sepoy Mutiny) was a major uprising against British rule in India.'},
+  {cat:'History',icon:'👑',q:'Which Chinese emperor first standardized weights measures and writing across China?',c:["Emperor Wu","Qin Shi Huang","Emperor Yao","Han Wudi"],a:1,x:'Qin Shi Huang standardized script weights measures and axle widths after unifying China in 221 BC.'},
+  {cat:'History',icon:'⚔️',q:'The Scramble for Africa formally began with which conference?',c:["Congress of Vienna","Paris Peace Conference","Berlin Conference","Treaty of Berlin"],a:2,x:'The Berlin Conference of 1884-1885 saw European powers divide Africa among themselves.'},
+  {cat:'History',icon:'📜',q:'Which Byzantine Emperor codified Roman law into the Corpus Juris Civilis?',c:["Constantine I","Theodosius","Basil II","Justinian I"],a:3,x:'Justinian I\'s Corpus Juris Civilis completed in 534 AD formed the basis of law in many modern countries.'},
+  {cat:'History',icon:'🏛️',q:'The Hundred Years War between England and France lasted from 1337 to which year?',c:["1415","1429","1453","1471"],a:2,x:'The Hundred Years War ended in 1453 with France victorious and England losing almost all its French territory.'},
+  {cat:'History',icon:'👑',q:'Which Aztec god required human sacrifice and was associated with the sun?',c:["Quetzalcoatl","Tlaloc","Huitzilopochtli","Tezcatlipoca"],a:2,x:'Huitzilopochtli the sun and war god required constant human sacrifice to keep the sun moving across the sky.'},
+  {cat:'History',icon:'⚔️',q:'The English Civil War resulted in the temporary abolition of the monarchy and creation of what?',c:["A republic","A constitutional monarchy","A military dictatorship","A parliamentary democracy"],a:0,x:'The Commonwealth of England a republic governed by Parliament and then Oliver Cromwell replaced the monarchy from 1649-1660.'},
+  {cat:'History',icon:'📜',q:'Which 19th century Chinese dynasty faced the Taiping and Boxer rebellions?',c:["Ming","Shang","Qing","Han"],a:2,x:'The Qing Dynasty ruling from 1644-1912 faced multiple massive rebellions weakening it before its fall.'},
+  {cat:'History',icon:'🏛️',q:'The Allied invasion of Normandy on D-Day occurred on which date?',c:["May 8 1945","June 6 1944","July 4 1944","August 15 1945"],a:1,x:'Operation Overlord the D-Day landings occurred on June 6 1944 along five beaches in Normandy France.'},
+  {cat:'History',icon:'👑',q:'Which ancient wonder was the tomb of Mausolus king of Caria?',c:["Colossus of Rhodes","Pharos Lighthouse","Mausoleum at Halicarnassus","Temple of Artemis"],a:2,x:'The Mausoleum at Halicarnassus gave us the word mausoleum and was built around 350 BC.'},
+  {cat:'History',icon:'⚔️',q:'The Meiji period saw Japan defeat which major power in 1905?',c:["Britain","Germany","United States","Russia"],a:3,x:'Japan\'s victory in the Russo-Japanese War of 1904-1905 shocked the world and established Japan as a major power.'},
+  {cat:'History',icon:'📜',q:'Which empire\'s collapse following World War I led to the modern Middle East\'s borders?',c:["Habsburg","Ottoman","Hohenzollern","Romanov"],a:1,x:'The Ottoman Empire\'s collapse led to the Sykes-Picot Agreement creating the modern borders of the Middle East.'},
+  {cat:'History',icon:'🏛️',q:'Who assassinated Archduke Franz Ferdinand in 1914 triggering World War I?',c:["A Serbian general","A German spy","A Bosnian Serb nationalist","An Austrian rebel"],a:2,x:'Gavrilo Princip a Bosnian Serb shot Franz Ferdinand in Sarajevo on June 28 1914.'},
+  {cat:'History',icon:'👑',q:'Which ancient trading civilization created the alphabet that most modern alphabets descend from?',c:["Sumerians","Egyptians","Phoenicians","Greeks"],a:2,x:'The Phoenician alphabet created around 1050 BC became the ancestor of Greek Latin Arabic and Hebrew scripts.'},
+  {cat:'History',icon:'⚔️',q:'The Punic Wars were fought between Rome and which North African power?',c:["Egypt","Numidia","Carthage","Mauretania"],a:2,x:'Rome fought three Punic Wars against Carthage from 264-146 BC ultimately destroying the Carthaginian civilization.'},
+  {cat:'History',icon:'📜',q:'Which 20th century conflict is sometimes called the Forgotten War?',c:["Vietnam War","Korean War","Gulf War","Falklands War"],a:1,x:'The Korean War of 1950-1953 is often called the Forgotten War overshadowed by WWII and the Vietnam War.'},
+  {cat:'History',icon:'🏛️',q:'The Pax Romana a period of relative peace lasted approximately how long?',c:["50 years","100 years","200 years","400 years"],a:2,x:'The Pax Romana (Roman Peace) lasted roughly 200 years from 27 BC to 180 AD.'},
+  {cat:'History',icon:'👑',q:'Which African empire controlled trans-Saharan gold and salt trade from 1235-1600 AD?',c:["Ghana Empire","Songhai Empire","Mali Empire","Kanem-Bornu"],a:2,x:'The Mali Empire under Mansa Musa was one of the wealthiest states in the medieval world.'},
+  {cat:'History',icon:'⚔️',q:'Who was the first European to sight New Zealand in 1642?',c:["James Cook","Francis Drake","Abel Tasman","Willem Janszoon"],a:2,x:'Abel Tasman the Dutch explorer was the first European to reach New Zealand naming it Staten Landt.'},
+  {cat:'History',icon:'📜',q:'The Peace of Westphalia ended which major 17th century European conflict?',c:["The English Civil War","The Thirty Years War","The Eighty Years War","Both the Thirty and Eighty Years Wars"],a:3,x:'The Peace of Westphalia in 1648 ended both the Thirty Years War and Eighty Years War simultaneously.'},
+  {cat:'History',icon:'🏛️',q:'Which Roman emperor built the Pantheon in its current form?',c:["Augustus","Trajan","Hadrian","Marcus Aurelius"],a:2,x:'Emperor Hadrian rebuilt the Pantheon around 125 AD; its unreinforced concrete dome remains the largest in the world.'},
+  {cat:'History',icon:'👑',q:'The Cuban Revolution of 1959 brought which leader to power?',c:["Che Guevara","Fulgencio Batista","Fidel Castro","Raul Castro"],a:2,x:'Fidel Castro led the guerrilla revolution that overthrew Batista\'s government on January 1 1959.'},
+  {cat:'History',icon:'⚔️',q:'Which Greek city-state was known for its powerful navy?',c:["Sparta","Corinth","Thebes","Athens"],a:3,x:'Athens built the most powerful navy in the ancient Greek world funding it through silver mines at Laurion.'},
+  {cat:'History',icon:'📜',q:'Who wrote the Communist Manifesto in 1848?',c:["Friedrich Engels alone","Karl Marx alone","Marx and Engels","Lenin and Marx"],a:2,x:'Karl Marx and Friedrich Engels co-authored The Communist Manifesto published in February 1848.'},
+  {cat:'History',icon:'🏛️',q:'Which ancient civilization built pyramids in Sudan predating the Egyptian ones?',c:["Nubians","Berbers","Carthaginians","Ethiopians"],a:0,x:'The Nubians (Kushites) built hundreds of pyramids in modern Sudan some predating Egyptian ones.'},
+  {cat:'History',icon:'👑',q:'The Vietnam War ended with the fall of which city in 1975?',c:["Hanoi","Da Nang","Hue","Saigon"],a:3,x:'The fall of Saigon on April 30 1975 marked the end of the Vietnam War and reunification of Vietnam under Communist rule.'},
+  {cat:'History',icon:'⚔️',q:'Which emperor commissioned the construction of the Colosseum in Rome?',c:["Augustus","Nero","Vespasian","Domitian"],a:2,x:'Emperor Vespasian began construction of the Colosseum around 70-72 AD; it was completed under his son Titus.'},
+  {cat:'History',icon:'📜',q:'The Dreyfus Affair led directly to which political development in France?',c:["The Third Republic","Laws separating church and state","The French Revolution","The Paris Commune"],a:1,x:'The Dreyfus scandal accelerated the passage of laws formally separating church and state in France in 1905.'},
+  {cat:'History',icon:'🏛️',q:'Which ancient city was the capital of the Achaemenid Persian Empire?',c:["Babylon","Nineveh","Susa","Persepolis"],a:3,x:'Persepolis was built by Darius I as the ceremonial capital of the Persian Empire around 515 BC.'},
+  {cat:'History',icon:'👑',q:'The Boer Wars of 1880-1902 were fought between Britain and Dutch settlers in which region?',c:["Namibia","Zimbabwe","South Africa","Kenya"],a:2,x:'The Boer Wars were fought between British forces and Afrikaner settlers (Boers) in South Africa.'},
+  {cat:'History',icon:'⚔️',q:'Which Ming Dynasty admiral commanded the largest fleet in the world in the early 15th century?',c:["Koxinga","Zheng He","Wei Zhongxian","Wang Anshi"],a:1,x:'Zheng He commanded fleets of massive treasure ships making seven voyages to Southeast Asia India and East Africa.'},
+  {cat:'History',icon:'📜',q:'The Haitian Revolution of 1791-1804 produced the first what?',c:["Abolition of slavery in the Americas","Black-led republic in the Western Hemisphere","Democratic constitution in Latin America","Successful slave revolt in history"],a:1,x:'Haiti became the first Black republic in the Western Hemisphere and the first country founded by formerly enslaved people.'},
+  {cat:'History',icon:'🏛️',q:'Which ancient wonder was built on the Greek island of Rhodes?',c:["Temple of Artemis","Pharos Lighthouse","Colossus","Hanging Gardens"],a:2,x:'The Colossus of Rhodes a giant bronze statue was built around 280 BC to celebrate a military victory.'},
+  {cat:'History',icon:'👑',q:'Who led the Long March across China in 1934-1935?',c:["Sun Yat-sen","Chiang Kai-shek","Zhou Enlai","Mao Zedong"],a:3,x:'Mao Zedong led the Red Army on the 9,000 km Long March retreating from Nationalist forces.'},
+  {cat:'History',icon:'⚔️',q:'The Treaty of Tordesillas in 1494 divided the New World between which two countries?',c:["England and France","Spain and Portugal","Spain and Holland","Portugal and France"],a:1,x:'Pope Alexander VI divided the non-European world between Spain and Portugal along a meridian line.'},
+  {cat:'History',icon:'📜',q:'Which European country controlled Vietnam as a colony until 1954?',c:["Britain","Netherlands","France","Spain"],a:2,x:'France colonized Vietnam as part of French Indochina from the 1880s until the Viet Minh defeated them at Dien Bien Phu.'},
+  {cat:'History',icon:'🏛️',q:'The Storming of the Bastille on July 14 1789 is celebrated as which national holiday?',c:["Armistice Day","Bastille Day","Liberation Day","Republic Day"],a:1,x:'Bastille Day remains France\'s national holiday celebrating the symbolic start of the French Revolution.'},
+  {cat:'History',icon:'👑',q:'Which ancient Greek historian wrote the History of the Peloponnesian War?',c:["Herodotus","Plutarch","Thucydides","Xenophon"],a:2,x:'Thucydides a general in the war wrote what is considered the first scientific approach to historical writing.'},
+  {cat:'History',icon:'⚔️',q:'The Warsaw Pact was a military alliance of which group of countries?',c:["Western European democracies","NATO member states","Soviet bloc Communist countries","Non-aligned nations"],a:2,x:'The Warsaw Pact formed in 1955 united the Soviet Union and its Eastern European satellite states.'},
+  {cat:'History',icon:'📜',q:'Which Mongol ruler conquered China and founded the Yuan Dynasty?',c:["Genghis Khan","Timur","Kublai Khan","Ogedei Khan"],a:2,x:'Kublai Khan grandson of Genghis Khan conquered the Song Dynasty and ruled China as the Yuan Dynasty from 1271-1368.'},
+  {cat:'History',icon:'🏛️',q:'The Troubles in Northern Ireland referred to a conflict primarily between which groups?',c:["Catholic nationalists and Protestant unionists","Irish and English armies","Republicans and loyalist militias","All of the above are correct"],a:3,x:'The Troubles involved Catholic nationalists seeking Irish unification and Protestant unionists wanting to remain British.'},
+  {cat:'History',icon:'👑',q:'Which ancient site in Peru was built by the Inca around 1450 and rediscovered in 1911?',c:["Tiwanaku","Chan Chan","Cusco","Machu Picchu"],a:3,x:'American historian Hiram Bingham brought Machu Picchu to international attention in 1911.'},
+  {cat:'History',icon:'⚔️',q:'The Marshall Plan after World War II provided economic aid primarily to rebuild which region?',c:["East Asia","Latin America","Western Europe","The Middle East"],a:2,x:'The Marshall Plan from 1948-1952 provided over $12 billion to help rebuild Western European economies after WWII.'},
+  {cat:'History',icon:'📜',q:'Which Ottoman sultan conquered Constantinople in 1453 ending the Byzantine Empire?',c:["Suleiman I","Selim I","Mehmed II","Bayezid II"],a:2,x:'Mehmed II called the Conqueror besieged and captured Constantinople with a massive army and artillery.'},
+  {cat:'History',icon:'🏛️',q:'The Seven Wonders of the Ancient World were catalogued by which ancient scholar?',c:["Pliny the Elder","Antipater of Sidon","Strabo","Callimachus"],a:1,x:'Antipater of Sidon created the first known list of the Seven Wonders around 140 BC.'},
+  {cat:'History',icon:'👑',q:'Who was the last emperor of the Western Roman Empire deposed in 476 AD?',c:["Honorius","Romulus Augustulus","Julius Nepos","Glycerius"],a:1,x:'Romulus Augustulus was deposed by the Germanic chieftain Odoacer traditionally marking the fall of the Western Roman Empire.'},
+  {cat:'History',icon:'⚔️',q:'Which 20th century African leader served the longest as head of state governing for 42 years?',c:["Robert Mugabe","Mobutu Sese Seko","Muammar Gaddafi","Omar Bongo"],a:2,x:'Muammar Gaddafi ruled Libya from 1969 to 2011 when he was overthrown and killed during the Arab Spring.'},
+  {cat:'History',icon:'📜',q:'The Edict of Nantes in 1598 granted religious freedom to which group in France?',c:["Jews","Muslims","Huguenots","Calvinists"],a:2,x:'Henry IV of France issued the Edict of Nantes granting French Protestants (Huguenots) substantial rights and freedoms.'},
+  {cat:'History',icon:'🏛️',q:'Which ancient Greek philosopher wrote The Republic describing an ideal state?',c:["Aristotle","Socrates","Plato","Thucydides"],a:2,x:'Plato\'s Republic written around 380 BC describes an ideal city-state governed by philosopher-kings.'},
+  {cat:'History',icon:'👑',q:'The Berlin Airlift of 1948-1949 was a response to which action by the Soviet Union?',c:["Military buildup along the border","Blockade of West Berlin","Nuclear testing in Eastern Europe","Annexation of East Germany"],a:1,x:'The Soviets blockaded West Berlin in 1948 and the Western Allies responded with a massive airlift supplying the city for 11 months.'},
+  {cat:'History',icon:'⚔️',q:'Which Mesoamerican civilization built the city of Teotihuacan with its famous pyramids?',c:["Aztec","Toltec","Olmec","Teotihuacanos"],a:3,x:'The Teotihuacan civilization built the city (name means where men become gods) between 100 BC and 550 AD.'},
+  {cat:'History',icon:'📜',q:'The Napoleonic Code created by Napoleon Bonaparte influenced law in which regions?',c:["Only France","France and Britain","Much of Europe and Latin America","Only French colonies"],a:2,x:'The Napoleonic Code of 1804 influenced legal systems throughout Europe Latin America and beyond.'},
+  {cat:'History',icon:'🏛️',q:'Which African kingdom resisted Portuguese colonization and flourished from the 14th-17th centuries?',c:["Mali Empire","Ghana Empire","Kingdom of Kongo","Songhai Empire"],a:2,x:'The Kingdom of Kongo was a sophisticated state centered in modern Congo that traded with but initially resisted European domination.'},
+  {cat:'History',icon:'👑',q:'The Crusades were called by Pope Urban II at which council in 1095?',c:["Council of Constance","Council of Nicaea","Council of Clermont","Council of Trent"],a:2,x:'Pope Urban II called the First Crusade at the Council of Clermont in November 1095.'},
+  {cat:'History',icon:'⚔️',q:'Which Japanese city was the second target of an atomic bomb in 1945?',c:["Osaka","Tokyo","Hiroshima","Nagasaki"],a:3,x:'Nagasaki was bombed with the Fat Man plutonium bomb on August 9 1945 three days after Hiroshima.'},
+  {cat:'History',icon:'📜',q:'The Gutenberg Galaxy refers to the revolution in communication caused by what invention?',c:["The telegraph","The printing press","The telephone","The internet"],a:1,x:'Gutenberg\'s printing press enabled mass production of books transforming literacy learning and communication.'},
+  {cat:'History',icon:'🏛️',q:'Which ancient city is considered the birthplace of Christianity?',c:["Rome","Antioch","Bethlehem","Jerusalem"],a:3,x:'Jerusalem holds the sites of the crucifixion burial and resurrection of Jesus Christ making it central to Christianity.'},
+  {cat:'History',icon:'👑',q:'The Khmer Rouge regime in Cambodia from 1975-1979 was led by which dictator?',c:["Hun Sen","Sihanouk","Pol Pot","Ta Mok"],a:2,x:'Pol Pot\'s Khmer Rouge killed an estimated 1.5-2 million Cambodians in the Killing Fields.'},
+  {cat:'History',icon:'⚔️',q:'Which ancient trading empire controlled the Indian Ocean trade routes from 300-700 AD?',c:["Byzantine Empire","Sassanid Empire","Aksumite Empire","Gupta Empire"],a:2,x:'The Aksumite Empire based in modern Ethiopia and Eritrea controlled Red Sea trade routes connecting Rome to India.'},
+  {cat:'History',icon:'📜',q:'The Spanish Civil War of 1936-1939 ended with the victory of which faction?',c:["Republicans","Anarchists","Nationalists","Communists"],a:2,x:'Francisco Franco\'s Nationalist forces won the Spanish Civil War establishing a fascist dictatorship lasting until 1975.'},
+  {cat:'History',icon:'🏛️',q:'Which Greek mathematician is known as the Father of Geometry?',c:["Pythagoras","Archimedes","Thales","Euclid"],a:3,x:'Euclid\'s Elements written around 300 BC systematized geometry and remained a key mathematics textbook for 2,000 years.'},
+  {cat:'History',icon:'👑',q:'The Sykes-Picot Agreement of 1916 secretly divided which region between Britain and France?',c:["West Africa","The Balkans","The Middle East","Central Asia"],a:2,x:'The Sykes-Picot Agreement divided the Arab lands of the Ottoman Empire into British and French spheres of influence.'},
+  {cat:'History',icon:'⚔️',q:'Which ancient Indian empire was the first to unify most of the Indian subcontinent?',c:["Gupta Empire","Kushan Empire","Maurya Empire","Maratha Empire"],a:2,x:'The Maurya Empire under Chandragupta Maurya and later Ashoka unified most of India from 322-185 BC.'},
+  {cat:'History',icon:'📜',q:'The Dawes Plan of 1924 addressed which problem following World War I?',c:["German rearmament","German reparations payments","French occupation of the Ruhr","Hyperinflation in France"],a:1,x:'The Dawes Plan restructured German reparation payments helping stabilize the German economy in the mid-1920s.'},
+  {cat:'History',icon:'⚔️',q:'Which Incan emperor was ruling when the Spanish arrived in 1532?',c:["Huascar","Manco Inca","Atahualpa","Tupac Inca"],a:2,x:'Atahualpa had just won a civil war against his brother Huascar when Pizarro arrived.'},
+  {cat:'History',icon:'📜',q:'The Yalta Conference of 1945 planned the post-war world between Roosevelt Churchill and who?',c:["Truman","de Gaulle","Stalin","Eisenhower"],a:2,x:'Stalin Roosevelt and Churchill met at Yalta in February 1945 to discuss Europe\'s post-war reorganization.'},
+  {cat:'History',icon:'🏛️',q:'Which ancient Roman road stretched from Rome to the heel of Italy?',c:["Via Appia","Via Aurelia","Via Flaminia","Via Egnatia"],a:0,x:'The Appian Way (Via Appia) built from 312 BC was the most important road of early Rome.'},
+  {cat:'History',icon:'👑',q:'The Cultural Revolution in China lasted approximately how long?',c:["2 years","5 years","10 years","15 years"],a:2,x:'The Cultural Revolution lasted roughly 10 years from 1966 to 1976 when Mao Zedong died.'},
+  {cat:'History',icon:'⚔️',q:'Which ancient Mesopotamian city contained the famous Ishtar Gate?',c:["Ur","Nineveh","Babylon","Lagash"],a:2,x:'The Ishtar Gate built by Nebuchadnezzar II around 575 BC was one of eight gates of Babylon.'},
+  {cat:'History',icon:'📜',q:'The My Lai Massacre during the Vietnam War was carried out by which country\'s troops?',c:["South Vietnamese","North Vietnamese","United States","Australian"],a:2,x:'US troops massacred between 347-504 unarmed civilians in My Lai South Vietnam in March 1968.'},
+  {cat:'History',icon:'🏛️',q:'Which Italian city-state dominated Mediterranean trade in the 12th-14th centuries?',c:["Genoa","Florence","Milan","Venice"],a:3,x:'Venice built a commercial empire controlling trade routes to the Byzantine Empire and Middle East.'},
+  {cat:'History',icon:'👑',q:'The Tanzimat reforms of the 19th century aimed to modernize which empire?',c:["Austro-Hungarian","Russian","Persian","Ottoman"],a:3,x:'Ottoman Tanzimat reforms from 1839-1876 attempted to modernize the empire along Western lines.'},
+  {cat:'History',icon:'⚔️',q:'Which Indigenous civilization built the Cahokia mounds near modern St. Louis?',c:["Cherokee","Iroquois","Mississippian culture","Anasazi"],a:2,x:'The Mississippian culture built Cahokia around 1050-1200 AD with a population that may have reached 20,000.'},
+  {cat:'Science',icon:'🔬',q:'What is the only metal that is liquid at room temperature?',c:["Gallium","Cesium","Mercury","Francium"],a:2,x:'Mercury has a melting point of -38.8C far below room temperature.'},
+  {cat:'Science',icon:'⚗️',q:'Which particle gives other particles their mass by interacting with the Higgs field?',c:["Gluon","Neutrino","Higgs boson","Quark"],a:2,x:'The Higgs boson detected at CERN in 2012 confirmed the Higgs field that permeates all of space.'},
+  {cat:'Science',icon:'🌍',q:'What percentage of Earth\'s surface is covered by water?',c:["61%","71%","81%","51%"],a:1,x:'About 71% of Earth\'s surface is covered by water though 97% of it is saltwater.'},
+  {cat:'Science',icon:'🧬',q:'DNA replication errors are primarily corrected by which enzyme?',c:["Helicase","Ligase","DNA Polymerase III","Primase"],a:2,x:'DNA Polymerase III has built-in proofreading that catches and fixes about 99.9% of errors.'},
+  {cat:'Science',icon:'🔭',q:'Which planet in our solar system has the strongest magnetic field?',c:["Earth","Saturn","Jupiter","Neptune"],a:2,x:'Jupiter\'s magnetic field is about 20,000 times stronger than Earth\'s.'},
+  {cat:'Science',icon:'🔬',q:'The nucleus of an atom contains protons and which other particle?',c:["Electrons","Positrons","Neutrons","Muons"],a:2,x:'Neutrons have no electric charge and contribute to the stability of the nucleus.'},
+  {cat:'Science',icon:'⚗️',q:'What is the most abundant element in the universe by mass?',c:["Helium","Carbon","Oxygen","Hydrogen"],a:3,x:'Hydrogen makes up about 75% of all ordinary matter in the universe.'},
+  {cat:'Science',icon:'🌍',q:'Which gas do plants absorb from the atmosphere during photosynthesis?',c:["Oxygen","Nitrogen","Carbon dioxide","Argon"],a:2,x:'Plants convert CO2 and water into glucose and oxygen using sunlight energy.'},
+  {cat:'Science',icon:'🧬',q:'How many pairs of chromosomes are found in a typical human body cell?',c:["21","23","46","48"],a:1,x:'Humans have 23 pairs (46 total) chromosomes; egg and sperm cells carry only 23 chromosomes each.'},
+  {cat:'Science',icon:'🔭',q:'What phenomenon causes the sky to appear blue?',c:["Refraction","Absorption","Rayleigh scattering","Diffraction"],a:2,x:'Rayleigh scattering causes shorter blue wavelengths to scatter far more than longer red wavelengths.'},
+  {cat:'Science',icon:'🔬',q:'What is the speed of light in a vacuum approximately?',c:["150,000 km/s","300,000 km/s","450,000 km/s","600,000 km/s"],a:1,x:'Light travels at exactly 299,792,458 meters per second in a vacuum.'},
+  {cat:'Science',icon:'⚗️',q:'Which element has the atomic number 79?',c:["Silver","Platinum","Gold","Copper"],a:2,x:'Gold\'s atomic number 79 and symbol Au come from the Latin word aurum.'},
+  {cat:'Science',icon:'🌍',q:'What is the process by which rocks are broken down in place by weather and chemical action?',c:["Erosion","Weathering","Sedimentation","Lithification"],a:1,x:'Weathering breaks rocks into smaller pieces in place; erosion then moves those pieces elsewhere.'},
+  {cat:'Science',icon:'🧬',q:'Which organelle is responsible for producing ATP in eukaryotic cells?',c:["Ribosome","Nucleus","Mitochondria","Golgi apparatus"],a:2,x:'Mitochondria generate ATP through cellular respiration and contain their own separate DNA.'},
+  {cat:'Science',icon:'🔭',q:'What is the term for a collapsed star smaller than a city but more massive than the Sun?',c:["White dwarf","Red giant","Neutron star","Pulsar"],a:2,x:'Neutron stars pack more mass than the Sun into a sphere about 20 km wide.'},
+  {cat:'Science',icon:'🔬',q:'What force holds quarks together inside protons and neutrons?',c:["Electromagnetic force","Gravity","Weak nuclear force","Strong nuclear force"],a:3,x:'The strong nuclear force carried by gluons is the most powerful of the four fundamental forces.'},
+  {cat:'Science',icon:'⚗️',q:'Absolute zero the coldest theoretical temperature equals how many degrees Celsius?',c:["-100C","-200C","-273.15C","-373.15C"],a:2,x:'At absolute zero (0 Kelvin) all classical molecular motion stops entirely.'},
+  {cat:'Science',icon:'🌍',q:'What type of rock is formed from cooled magma or lava?',c:["Sedimentary","Metamorphic","Igneous","Composite"],a:2,x:'Igneous rocks form when molten rock solidifies; granite and basalt are common examples.'},
+  {cat:'Science',icon:'🧬',q:'What protein carries oxygen in red blood cells?',c:["Myosin","Hemoglobin","Keratin","Collagen"],a:1,x:'Hemoglobin contains iron atoms that bind oxygen and give blood its red color.'},
+  {cat:'Science',icon:'🔭',q:'Which law states that gravity decreases with the square of the distance between objects?',c:["Kepler\'s Third Law","Newton\'s Second Law","Inverse Square Law","Coulomb\'s Law"],a:2,x:'The inverse square law applies to gravity light intensity and electromagnetic force.'},
+  {cat:'Science',icon:'🔬',q:'What is the chemical formula for table salt?',c:["NaCl","KCl","MgO","CaCO3"],a:0,x:'Sodium chloride NaCl forms when the metal sodium bonds with the gas chlorine.'},
+  {cat:'Science',icon:'⚗️',q:'Which scientist proposed the theory of natural selection in 1859?',c:["Gregor Mendel","Alfred Wallace","Charles Darwin","Thomas Huxley"],a:2,x:'Darwin published On the Origin of Species in 1859 though Wallace independently developed a similar theory.'},
+  {cat:'Science',icon:'🌍',q:'What is the layer of the atmosphere where weather occurs?',c:["Stratosphere","Mesosphere","Troposphere","Thermosphere"],a:2,x:'The troposphere extends from the ground to about 12 km and contains 75% of the atmosphere\'s mass.'},
+  {cat:'Science',icon:'🧬',q:'Which four bases make up the rungs of the DNA double helix?',c:["Adenine Thymine Guanine Cytosine","Adenine Uracil Guanine Cytosine","Alanine Tyrosine Glycine Cysteine","Adenine Thymine Guanine Serine"],a:0,x:'A pairs with T and G pairs with C; in RNA Uracil replaces Thymine.'},
+  {cat:'Science',icon:'🔭',q:'What is the primary fuel source for main-sequence stars like our Sun?',c:["Helium fusion","Carbon fusion","Hydrogen fusion","Uranium fission"],a:2,x:'Stars fuse hydrogen into helium in their cores releasing enormous energy via E=mc2.'},
+  {cat:'Science',icon:'🔬',q:'What type of bond holds water molecules together giving water its high boiling point?',c:["Covalent bonds","Ionic bonds","Hydrogen bonds","Metallic bonds"],a:2,x:'Hydrogen bonds between water molecules are weak individually but collectively give water remarkable properties.'},
+  {cat:'Science',icon:'⚗️',q:'Which scientist discovered penicillin in 1928?',c:["Louis Pasteur","Joseph Lister","Alexander Fleming","Robert Koch"],a:2,x:'Fleming\'s accidental discovery of penicillin launched the antibiotic era of medicine.'},
+  {cat:'Science',icon:'🌍',q:'What drives the movement of tectonic plates?',c:["Earth\'s rotation","Lunar gravity","Convection currents in the mantle","Solar radiation"],a:2,x:'Heat from Earth\'s core drives convection currents in the semi-molten mantle dragging plates along.'},
+  {cat:'Science',icon:'🧬',q:'What is the name for the process by which cells divide to produce two identical daughter cells?',c:["Meiosis","Mitosis","Binary fission","Cytokinesis"],a:1,x:'Mitosis produces two genetically identical cells and is used for growth and tissue repair.'},
+  {cat:'Science',icon:'🔭',q:'When will the Andromeda Galaxy collide with the Milky Way?',c:["In 400 million years","In 4.5 billion years","In 1 billion years","In 10 billion years"],a:1,x:'The two galaxies will merge in about 4.5 billion years but the Sun and Earth will likely survive.'},
+  {cat:'Science',icon:'🔬',q:'Which vitamin does the human body produce when exposed to sunlight?',c:["Vitamin A","Vitamin C","Vitamin D","Vitamin K"],a:2,x:'UVB radiation triggers the synthesis of Vitamin D3 in the skin from cholesterol.'},
+  {cat:'Science',icon:'⚗️',q:'What is the hardest natural substance on Earth?',c:["Graphite","Quartz","Diamond","Corundum"],a:2,x:'Diamond scores 10 on the Mohs hardness scale the maximum possible.'},
+  {cat:'Science',icon:'🌍',q:'Which gas makes up about 78% of Earth\'s atmosphere?',c:["Oxygen","Carbon dioxide","Argon","Nitrogen"],a:3,x:'Nitrogen makes up about 78% of Earth\'s atmosphere with oxygen making up most of the remainder.'},
+  {cat:'Science',icon:'🧬',q:'What is the term for the process by which DNA is copied into RNA?',c:["Translation","Replication","Transcription","Transduction"],a:2,x:'Transcription copies the DNA sequence into messenger RNA which then carries instructions to the ribosome.'},
+  {cat:'Science',icon:'🔭',q:'Which planet is known as the Red Planet?',c:["Venus","Mars","Jupiter","Saturn"],a:1,x:'Mars appears red due to iron oxide (rust) covering its surface.'},
+  {cat:'Science',icon:'🔬',q:'What is the atomic number of carbon?',c:["4","6","8","12"],a:1,x:'Carbon has 6 protons making it atomic number 6 and the basis of all organic chemistry.'},
+  {cat:'Science',icon:'⚗️',q:'Which force is responsible for radioactive beta decay?',c:["Gravity","Electromagnetic force","Strong nuclear force","Weak nuclear force"],a:3,x:'The weak nuclear force mediates beta decay changing a neutron into a proton and emitting an electron.'},
+  {cat:'Science',icon:'🌍',q:'What phenomenon occurs when light bends as it passes from one medium to another?',c:["Reflection","Diffraction","Refraction","Dispersion"],a:2,x:'Refraction occurs because light changes speed when entering a new medium causing it to bend.'},
+  {cat:'Science',icon:'🧬',q:'How many bones are in the adult human body?',c:["186","206","226","246"],a:1,x:'Adults have 206 bones; babies are born with around 270 that fuse as they grow.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the force that opposes motion between two surfaces in contact?',c:["Gravity","Inertia","Friction","Drag"],a:2,x:'Friction is caused by irregularities in surfaces at the microscopic level and converts kinetic energy to heat.'},
+  {cat:'Science',icon:'🔬',q:'Which element is liquid at room temperature and used in old thermometers?',c:["Gallium","Bromine","Mercury","Cesium"],a:2,x:'Mercury (Hg) is liquid at room temperature and was widely used in thermometers before health concerns led to alternatives.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the process by which plants make food using sunlight?',c:["Respiration","Transpiration","Photosynthesis","Fermentation"],a:2,x:'Photosynthesis converts sunlight CO2 and water into glucose and oxygen.'},
+  {cat:'Science',icon:'🌍',q:'Which planet has the most moons in our solar system?',c:["Jupiter","Saturn","Uranus","Neptune"],a:1,x:'Saturn has the most confirmed moons with over 140 discovered as of recent surveys.'},
+  {cat:'Science',icon:'🧬',q:'What type of cell does not have a nucleus?',c:["Eukaryotic","Plant cell","Prokaryotic","Animal cell"],a:2,x:'Prokaryotic cells like bacteria lack a membrane-bound nucleus; their DNA floats freely in the cytoplasm.'},
+  {cat:'Science',icon:'🔭',q:'Which law of motion states that every action has an equal and opposite reaction?',c:["First law","Second law","Third law","Law of universal gravitation"],a:2,x:'Newton\'s Third Law of Motion explains phenomena like rocket propulsion and how we walk.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the scale used to measure earthquake magnitude?',c:["Beaufort scale","Richter scale","Fujita scale","Mercalli scale"],a:1,x:'The Richter scale developed by Charles Richter in 1935 measures the magnitude of seismic waves.'},
+  {cat:'Science',icon:'⚗️',q:'Which particle has no electric charge and travels close to the speed of light?',c:["Electron","Proton","Neutron","Neutrino"],a:3,x:'Neutrinos are nearly massless uncharged particles that pass through ordinary matter almost entirely undetected.'},
+  {cat:'Science',icon:'🌍',q:'What is the chemical symbol for iron?',c:["Ir","In","Fe","Fr"],a:2,x:'Iron\'s symbol Fe comes from the Latin word ferrum.'},
+  {cat:'Science',icon:'🧬',q:'What process allows RNA to be converted into protein?',c:["Transcription","Replication","Translation","Transduction"],a:2,x:'Translation occurs at ribosomes where messenger RNA is decoded to build a specific protein.'},
+  {cat:'Science',icon:'🔭',q:'Which type of electromagnetic radiation has the shortest wavelength?',c:["Radio waves","Infrared","X-rays","Gamma rays"],a:3,x:'Gamma rays have the shortest wavelength and highest energy in the electromagnetic spectrum.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the boundary between Earth\'s crust and mantle?',c:["Conrad discontinuity","Gutenberg discontinuity","Mohorovicic discontinuity","Lehmann discontinuity"],a:2,x:'The Moho boundary separates Earth\'s crust from the denser mantle below.'},
+  {cat:'Science',icon:'⚗️',q:'Which element is the most electronegative on the periodic table?',c:["Oxygen","Chlorine","Nitrogen","Fluorine"],a:3,x:'Fluorine is the most electronegative element strongly attracting electrons in chemical bonds.'},
+  {cat:'Science',icon:'🌍',q:'What is the term for the tendency of an object to resist changes in its motion?',c:["Momentum","Inertia","Velocity","Acceleration"],a:1,x:'Inertia is the property described by Newton\'s First Law: objects at rest stay at rest and objects in motion stay in motion.'},
+  {cat:'Science',icon:'🧬',q:'How many chambers does the human heart have?',c:["2","3","4","6"],a:2,x:'The human heart has four chambers: two atria and two ventricles.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the galaxy we live in?',c:["Andromeda","Triangulum","Milky Way","Whirlpool"],a:2,x:'The Milky Way is a barred spiral galaxy containing 100-400 billion stars including our Sun.'},
+  {cat:'Science',icon:'🔬',q:'Which acid is found in the human stomach?',c:["Acetic acid","Sulfuric acid","Hydrochloric acid","Citric acid"],a:2,x:'Hydrochloric acid (HCl) in the stomach helps break down food and kill bacteria.'},
+  {cat:'Science',icon:'⚗️',q:'What is the study of fossils called?',c:["Archaeology","Geology","Paleontology","Anthropology"],a:2,x:'Paleontology is the scientific study of fossils to understand the history of life on Earth.'},
+  {cat:'Science',icon:'🌍',q:'Which blood type is known as the universal donor?',c:["A","B","AB","O negative"],a:3,x:'O negative blood can be given to patients of any blood type making it the universal donor.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the process by which a solid turns directly into gas without becoming liquid?',c:["Condensation","Evaporation","Sublimation","Deposition"],a:2,x:'Sublimation occurs when dry ice (solid CO2) converts directly to carbon dioxide gas.'},
+  {cat:'Science',icon:'🔭',q:'What is the largest organ in the human body?',c:["Liver","Brain","Lungs","Skin"],a:3,x:'The skin is the largest organ of the human body covering about 2 square meters in adults.'},
+  {cat:'Science',icon:'🔬',q:'Which discovery by Watson and Crick in 1953 revolutionized biology?',c:["RNA structure","Protein folding","The double helix structure of DNA","Cell membrane structure"],a:2,x:'Watson and Crick\'s discovery of DNA\'s double helix structure explained how genetic information is stored and copied.'},
+  {cat:'Science',icon:'⚗️',q:'What is the unit of electrical resistance?',c:["Volt","Ampere","Watt","Ohm"],a:3,x:'The ohm named after Georg Simon Ohm measures resistance to electrical current flow.'},
+  {cat:'Science',icon:'🌍',q:'What percentage of the human genome is shared with chimpanzees?',c:["85%","94%","98.7%","99.9%"],a:2,x:'Humans and chimpanzees share approximately 98.7% of their DNA sequences.'},
+  {cat:'Science',icon:'🧬',q:'Which gas is produced when acids react with metals?',c:["Oxygen","Nitrogen","Carbon dioxide","Hydrogen"],a:3,x:'When acids react with reactive metals they produce a salt and hydrogen gas.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the closest star to Earth besides the Sun?',c:["Sirius","Vega","Proxima Centauri","Betelgeuse"],a:2,x:'Proxima Centauri is about 4.24 light-years from Earth and may host a potentially habitable planet.'},
+  {cat:'Science',icon:'🔬',q:'What is the name for the energy required to start a chemical reaction?',c:["Enthalpy","Entropy","Activation energy","Gibbs free energy"],a:2,x:'Activation energy is the minimum energy needed to start a chemical reaction.'},
+  {cat:'Science',icon:'⚗️',q:'Which organ in the human body produces insulin?',c:["Liver","Kidneys","Adrenal glands","Pancreas"],a:3,x:'The pancreas produces insulin to regulate blood sugar levels.'},
+  {cat:'Science',icon:'🌍',q:'What is the speed of sound in air at sea level approximately?',c:["343 m/s","1,235 m/s","3,000 m/s","700 m/s"],a:0,x:'Sound travels at approximately 343 meters per second (about 1,235 km/h) in air at 20C.'},
+  {cat:'Science',icon:'🧬',q:'What type of lens is used to correct nearsightedness?',c:["Convex","Concave","Bifocal","Cylindrical"],a:1,x:'Concave (diverging) lenses correct myopia (nearsightedness) by spreading light rays before they enter the eye.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the force that causes objects to fall toward Earth?',c:["Magnetism","Centripetal force","Gravity","Electrostatic force"],a:2,x:'Gravity is the attractive force between objects with mass described by Newton\'s law of universal gravitation.'},
+  {cat:'Science',icon:'🔬',q:'Which planet is closest in size to Earth?',c:["Mars","Mercury","Venus","Neptune"],a:2,x:'Venus is almost identical in size to Earth with a diameter about 95% of Earth\'s.'},
+  {cat:'Science',icon:'⚗️',q:'What is the chemical symbol for potassium?',c:["P","Po","Pt","K"],a:3,x:'Potassium\'s symbol K comes from the Latin kalium.'},
+  {cat:'Science',icon:'🌍',q:'What is the term for a substance that speeds up a chemical reaction without being consumed?',c:["Reactant","Solvent","Catalyst","Inhibitor"],a:2,x:'A catalyst lowers the activation energy of a reaction and can be used repeatedly.'},
+  {cat:'Science',icon:'🧬',q:'How many teeth does an adult human typically have?',c:["28","30","32","34"],a:2,x:'Adult humans typically have 32 teeth including four wisdom teeth which are often removed.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the force between electric charges?',c:["Magnetic force","Nuclear force","Gravitational force","Coulomb force"],a:3,x:'The Coulomb force (electrostatic force) describes the attraction or repulsion between charged particles.'},
+  {cat:'Science',icon:'🔬',q:'Which planet rotates on its side with an axial tilt of about 98 degrees?',c:["Neptune","Saturn","Uranus","Jupiter"],a:2,x:'Uranus has an extreme axial tilt causing it to rotate on its side relative to its orbital plane.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the protein that makes hair and nails?',c:["Collagen","Elastin","Keratin","Actin"],a:2,x:'Keratin is the fibrous structural protein that forms hair nails and the outer layer of skin.'},
+  {cat:'Science',icon:'🌍',q:'Which type of radiation can penetrate most materials but is stopped by lead?',c:["Alpha","Beta","Gamma","Neutron"],a:2,x:'Gamma rays are high-energy electromagnetic radiation requiring dense materials like lead or concrete to block.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the scale measuring acidity from 0 to 14?',c:["Beaufort scale","Kelvin scale","pH scale","Mohs scale"],a:2,x:'The pH scale measures how acidic or basic a substance is with 7 being neutral.'},
+  {cat:'Science',icon:'🔭',q:'What is the chemical formula for water?',c:["HO","H2O","H3O","OH"],a:1,x:'Water H2O consists of two hydrogen atoms bonded to one oxygen atom.'},
+  {cat:'Science',icon:'🔬',q:'Which scientist is associated with the theory of relativity?',c:["Isaac Newton","Niels Bohr","Max Planck","Albert Einstein"],a:3,x:'Einstein published his special theory of relativity in 1905 and general relativity in 1915.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the process by which an embryo attaches to the uterine wall?',c:["Fertilization","Gastrulation","Implantation","Gestation"],a:2,x:'Implantation occurs about 6-10 days after fertilization when the blastocyst attaches to the endometrium.'},
+  {cat:'Science',icon:'🌍',q:'What is the largest planet in our solar system?',c:["Saturn","Uranus","Neptune","Jupiter"],a:3,x:'Jupiter is the largest planet with a mass greater than all other planets combined.'},
+  {cat:'Science',icon:'🧬',q:'What is the term for organisms that make their own food through photosynthesis?',c:["Heterotrophs","Autotrophs","Decomposers","Parasites"],a:1,x:'Autotrophs including plants algae and some bacteria produce their own food using light or chemical energy.'},
+  {cat:'Science',icon:'🔭',q:'Which part of the brain controls balance and coordination?',c:["Cerebrum","Hippocampus","Cerebellum","Amygdala"],a:2,x:'The cerebellum coordinates movement balance and fine motor skills.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the quantum of light?',c:["Electron","Neutron","Photon","Quark"],a:2,x:'A photon is the fundamental quantum of electromagnetic energy including visible light.'},
+  {cat:'Science',icon:'⚗️',q:'How hot is the surface of the Sun approximately?',c:["3,000 K","5,500 K","10,000 K","50,000 K"],a:1,x:'The Sun\'s surface (photosphere) temperature is about 5,500 Kelvin (5,227 degrees Celsius).'},
+  {cat:'Science',icon:'🌍',q:'Which blood cells are responsible for fighting infection?',c:["Red blood cells","Platelets","White blood cells","Plasma cells"],a:2,x:'White blood cells (leukocytes) are the immune system\'s primary defenders against infection.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the outermost layer of the Sun\'s atmosphere visible during a solar eclipse?',c:["Photosphere","Chromosphere","Corona","Convection zone"],a:2,x:'The Sun\'s corona extends millions of kilometers into space and is visible during total solar eclipses.'},
+  {cat:'Science',icon:'🔭',q:'Which element has the chemical symbol Na?',c:["Nitrogen","Nickel","Sodium","Neon"],a:2,x:'Sodium\'s symbol Na comes from the Latin natrium.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the phenomenon where light bends around an object?',c:["Reflection","Refraction","Diffraction","Absorption"],a:2,x:'Diffraction occurs when waves including light bend around obstacles or through openings.'},
+  {cat:'Science',icon:'⚗️',q:'Which organ filters blood and produces urine?',c:["Liver","Spleen","Kidneys","Bladder"],a:2,x:'The kidneys filter about 180 liters of blood daily producing urine to remove waste products.'},
+  {cat:'Science',icon:'🌍',q:'What is the term for the amount of space an object occupies?',c:["Mass","Weight","Density","Volume"],a:3,x:'Volume is the three-dimensional space occupied by an object measured in cubic units.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the cell structure that controls the cell\'s activities?',c:["Mitochondria","Cell membrane","Nucleus","Ribosome"],a:2,x:'The nucleus contains the cell\'s DNA and controls gene expression and cell reproduction.'},
+  {cat:'Science',icon:'🔭',q:'Which type of rock is formed when existing rocks are transformed by heat and pressure?',c:["Igneous","Sedimentary","Metamorphic","Composite"],a:2,x:'Metamorphic rocks like marble and slate form when heat and pressure alter existing rocks without melting them.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the chemical process that releases energy from glucose in cells?',c:["Photosynthesis","Fermentation","Cellular respiration","Osmosis"],a:2,x:'Cellular respiration converts glucose and oxygen into CO2 water and ATP energy.'},
+  {cat:'Science',icon:'⚗️',q:'Which subatomic particle determines an element\'s chemical behavior?',c:["Neutron","Proton","Electron","Nucleus"],a:2,x:'Electrons especially those in the outermost shell determine how an atom bonds with other atoms.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the force that keeps planets in orbit around the Sun?',c:["Magnetic force","Nuclear force","Gravitational force","Centrifugal force"],a:2,x:'Gravity between the Sun and planets provides the centripetal force that maintains planetary orbits.'},
+  {cat:'Science',icon:'🧬',q:'Which organ produces bile to aid in digestion?',c:["Stomach","Pancreas","Gallbladder","Liver"],a:3,x:'The liver produces bile which is stored in the gallbladder and released to help digest fats.'},
+  {cat:'Science',icon:'🔭',q:'What is the term for the distance light travels in one year?',c:["Astronomical unit","Parsec","Light-year","Light-second"],a:2,x:'A light-year is approximately 9.46 trillion kilometers the distance light travels in one Earth year.'},
+  {cat:'Science',icon:'🔬',q:'Which gas is produced by anaerobic respiration in yeast?',c:["Oxygen","Carbon dioxide","Hydrogen","Methane"],a:1,x:'Yeast produces carbon dioxide and ethanol through anaerobic fermentation.'},
+  {cat:'Science',icon:'⚗️',q:'What is the chemical symbol for lead?',c:["Le","Ld","Pb","Li"],a:2,x:'Lead\'s symbol Pb comes from the Latin plumbum.'},
+  {cat:'Science',icon:'🌍',q:'Which part of the eye contains photoreceptors called rods and cones?',c:["Cornea","Iris","Lens","Retina"],a:3,x:'The retina contains photoreceptor cells; rods detect light intensity and cones detect color.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the process by which water vapor condenses to form clouds?',c:["Evaporation","Precipitation","Condensation","Transpiration"],a:2,x:'Condensation occurs when water vapor cools and converts to liquid water droplets forming clouds.'},
+  {cat:'Science',icon:'🔭',q:'How many elements are currently on the periodic table?',c:["92","108","118","128"],a:2,x:'As of recent additions the periodic table contains 118 confirmed elements.'},
+  {cat:'Science',icon:'🔬',q:'Which type of galaxy has a flat disk with spiral arms?',c:["Elliptical","Irregular","Lenticular","Spiral"],a:3,x:'Spiral galaxies like the Milky Way have a central bulge surrounded by rotating spiral arms.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the layer of ozone that protects Earth from UV radiation?',c:["Troposphere","Mesosphere","Stratosphere","Thermosphere"],a:2,x:'The ozone layer in the stratosphere about 15-35 km up absorbs most of the Sun\'s ultraviolet radiation.'},
+  {cat:'Science',icon:'🌍',q:'Which organ system includes the heart arteries and veins?',c:["Respiratory system","Nervous system","Lymphatic system","Circulatory system"],a:3,x:'The circulatory system transports blood oxygen and nutrients throughout the body.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the quantum number that describes an electron\'s spin?',c:["Principal","Azimuthal","Magnetic","Spin"],a:3,x:'The spin quantum number describes the intrinsic angular momentum of an electron with values of +1/2 or -1/2.'},
+  {cat:'Science',icon:'🔭',q:'Which scientist first described the laws of planetary motion?',c:["Galileo Galilei","Tycho Brahe","Nicolaus Copernicus","Johannes Kepler"],a:3,x:'Kepler\'s three laws of planetary motion published 1609-1619 mathematically described how planets orbit the Sun.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the smallest unit of a chemical element?',c:["Molecule","Ion","Atom","Compound"],a:2,x:'An atom is the smallest unit of an element that retains the chemical properties of that element.'},
+  {cat:'Science',icon:'⚗️',q:'Which process creates new ocean floor at mid-ocean ridges?',c:["Subduction","Erosion","Seafloor spreading","Orogenesis"],a:2,x:'Seafloor spreading occurs when magma rises at mid-ocean ridges creating new oceanic crust.'},
+  {cat:'Science',icon:'🌍',q:'What is the term for the minimum amount of energy needed to remove an electron from an atom?',c:["Electron affinity","Ionization energy","Electronegativity","Bond dissociation energy"],a:1,x:'Ionization energy is the energy required to remove an electron from a gaseous atom.'},
+  {cat:'Science',icon:'🧬',q:'Which human sense is most directly connected to memory?',c:["Sight","Hearing","Touch","Smell"],a:3,x:'The olfactory system is directly connected to the hippocampus and amygdala making smell the sense most linked to memory.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the scientist who developed the three laws of motion?',c:["Galileo","Newton","Einstein","Faraday"],a:1,x:'Isaac Newton published his three laws of motion in Principia Mathematica in 1687.'},
+  {cat:'Science',icon:'🔬',q:'Which type of bond involves the sharing of electrons between atoms?',c:["Ionic bond","Covalent bond","Hydrogen bond","Metallic bond"],a:1,x:'Covalent bonds form when atoms share electrons allowing both to achieve a stable electron configuration.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the gland at the base of the brain that controls other endocrine glands?',c:["Thyroid","Adrenal","Pineal","Pituitary"],a:3,x:'The pituitary gland is called the master gland because it regulates other endocrine glands through hormones.'},
+  {cat:'Science',icon:'🌍',q:'Which element is used in nuclear reactors as fuel?',c:["Thorium","Radium","Uranium","Plutonium"],a:2,x:'Uranium-235 is the most commonly used fuel in nuclear fission reactors.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the process by which DNA is packaged into chromosomes?',c:["Transcription","Replication","Condensation","Coiling"],a:2,x:'During cell division DNA condenses and wraps around histone proteins to form compact chromosomes.'},
+  {cat:'Science',icon:'🔭',q:'How many bones make up the human spine?',c:["24","33","38","42"],a:1,x:'The adult human spine has 33 vertebrae though some fuse in adulthood leaving about 24 movable ones.'},
+  {cat:'Science',icon:'🔬',q:'Which wave type requires a medium to travel through?',c:["Electromagnetic waves","Light waves","Mechanical waves","Radio waves"],a:2,x:'Mechanical waves like sound require a physical medium (solid liquid or gas) to propagate.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the process by which water moves through a semi-permeable membrane?',c:["Diffusion","Active transport","Osmosis","Facilitated diffusion"],a:2,x:'Osmosis is the diffusion of water molecules through a semi-permeable membrane from low to high solute concentration.'},
+  {cat:'Science',icon:'🌍',q:'Which planet has a day longer than its year?',c:["Mercury","Mars","Venus","Jupiter"],a:2,x:'Venus takes 243 Earth days to rotate once but only 225 Earth days to orbit the Sun.'},
+  {cat:'Science',icon:'🧬',q:'What is the name for the inherited unit of genetic information?',c:["Chromosome","Allele","Gene","Codon"],a:2,x:'A gene is a segment of DNA that encodes instructions for building a specific protein.'},
+  {cat:'Science',icon:'🔭',q:'Which scientist first proposed that Earth orbits the Sun?',c:["Galileo Galilei","Tycho Brahe","Nicolaus Copernicus","Giordano Bruno"],a:2,x:'Copernicus proposed the heliocentric model in De Revolutionibus published in 1543.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the blood vessel that carries oxygenated blood away from the heart?',c:["Vein","Capillary","Artery","Venule"],a:2,x:'Arteries carry oxygenated blood away from the heart to the body\'s tissues.'},
+  {cat:'Science',icon:'⚗️',q:'Which type of matter makes up about 27% of the universe but cannot be directly detected?',c:["Antimatter","Dark energy","Dark matter","Neutron matter"],a:2,x:'Dark matter is detected only through its gravitational effects and makes up about 27% of the universe.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the bone in the upper arm?',c:["Radius","Ulna","Femur","Humerus"],a:3,x:'The humerus is the long bone of the upper arm connecting the shoulder to the elbow.'},
+  {cat:'Science',icon:'🧬',q:'Which phenomenon occurs when a star runs out of fuel and explodes?',c:["Black hole formation","Neutron star","Supernova","Quasar"],a:2,x:'A supernova is a stellar explosion that can briefly outshine an entire galaxy.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the chemical bond formed between a metal and a non-metal?',c:["Covalent bond","Hydrogen bond","Ionic bond","Van der Waals bond"],a:2,x:'Ionic bonds form when electrons are transferred from a metal to a non-metal creating oppositely charged ions.'},
+  {cat:'Science',icon:'🔬',q:'Which part of the brain is responsible for language processing in most people?',c:["Right hemisphere","Cerebellum","Brainstem","Left hemisphere"],a:3,x:'Language processing occurs primarily in Broca\'s and Wernicke\'s areas in the left hemisphere for most people.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the force that acts on a charged particle moving through a magnetic field?',c:["Coulomb force","Lorentz force","Gravitational force","Nuclear force"],a:1,x:'The Lorentz force acts perpendicular to both the velocity of the particle and the magnetic field.'},
+  {cat:'Science',icon:'🌍',q:'Which planet has rings made primarily of ice and rock?',c:["Jupiter","Uranus","Neptune","Saturn"],a:3,x:'Saturn\'s rings are composed mainly of ice particles and rocky debris ranging from tiny grains to large chunks.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the process by which organisms convert nitrogen gas into usable compounds?',c:["Denitrification","Nitrification","Nitrogen fixation","Ammonification"],a:2,x:'Nitrogen fixation by bacteria converts atmospheric N2 into ammonia that plants can use.'},
+  {cat:'Science',icon:'🔭',q:'Which physicist developed quantum mechanics and the uncertainty principle?',c:["Niels Bohr","Max Planck","Werner Heisenberg","Erwin Schrodinger"],a:2,x:'Heisenberg formulated the uncertainty principle in 1927 establishing a fundamental limit on measurement precision.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the process that separates mixtures based on different boiling points?',c:["Filtration","Chromatography","Distillation","Crystallization"],a:2,x:'Distillation separates components of a liquid mixture by exploiting differences in boiling points.'},
+  {cat:'Science',icon:'⚗️',q:'How many lobes does the human liver have?',c:["2","3","4","5"],a:0,x:'The human liver has two main lobes: the larger right lobe and the smaller left lobe.'},
+  {cat:'Science',icon:'🌍',q:'Which layer of the atmosphere is directly above the troposphere?',c:["Mesosphere","Thermosphere","Stratosphere","Exosphere"],a:2,x:'The stratosphere extends from about 12 to 50 km above Earth and contains the ozone layer.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the process by which rocks are worn away by water wind or ice?',c:["Weathering","Deposition","Erosion","Lithification"],a:2,x:'Erosion transports weathered rock material from one place to another through water wind or ice.'},
+  {cat:'Science',icon:'🔭',q:'Which quantum number describes an electron\'s energy level?',c:["Spin quantum number","Azimuthal quantum number","Magnetic quantum number","Principal quantum number"],a:3,x:'The principal quantum number (n) describes the energy level or shell of an electron.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the process by which a liquid turns into a gas at its surface?',c:["Boiling","Sublimation","Condensation","Evaporation"],a:3,x:'Evaporation occurs at the surface of a liquid at any temperature below the boiling point.'},
+  {cat:'Science',icon:'⚗️',q:'Which organ in the human body is responsible for detoxifying blood?',c:["Kidneys","Spleen","Liver","Lungs"],a:2,x:'The liver detoxifies chemicals and metabolizes drugs converting harmful substances to less harmful ones.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the wave-like model that describes the behavior of electrons around an atom?',c:["Bohr model","Plum pudding model","Quantum mechanical model","Rutherford model"],a:2,x:'The quantum mechanical model describes electrons as probability clouds rather than defined orbits.'},
+  {cat:'Science',icon:'🧬',q:'Which protein allows muscles to contract?',c:["Hemoglobin","Collagen","Actin and myosin","Keratin"],a:2,x:'Muscle contraction occurs through the interaction of actin and myosin filaments powered by ATP.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the force that keeps electrons in orbit around the nucleus?',c:["Gravity","Strong nuclear force","Electromagnetic force","Weak nuclear force"],a:2,x:'The electromagnetic force between positively charged protons and negatively charged electrons keeps electrons bound to atoms.'},
+  {cat:'Science',icon:'🔬',q:'Which planet in our solar system has the shortest day?',c:["Earth","Mars","Saturn","Jupiter"],a:3,x:'Jupiter rotates once every 9.9 hours making it the fastest-rotating planet in the solar system.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the primary pigment that makes plants green?',c:["Carotene","Xanthophyll","Chlorophyll","Anthocyanin"],a:2,x:'Chlorophyll absorbs red and blue light and reflects green light giving plants their characteristic color.'},
+  {cat:'Science',icon:'🌍',q:'Which type of electromagnetic radiation is used in MRI machines?',c:["X-rays","Gamma rays","Radio waves","Microwaves"],a:2,x:'MRI machines use radio waves combined with a strong magnetic field to create detailed images of soft tissue.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the scientist who proposed the Big Bang theory?',c:["Edwin Hubble","Fred Hoyle","Georges Lemaitre","George Gamow"],a:2,x:'Georges Lemaitre first proposed in 1927 that the universe originated from an initial point expanding outward.'},
+  {cat:'Science',icon:'🔭',q:'Which organ in the human body produces red blood cells?',c:["Spleen","Thymus","Bone marrow","Liver"],a:2,x:'Red blood cells are produced in the bone marrow through a process called erythropoiesis.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the chemical reaction that releases energy by combining hydrogen and oxygen?',c:["Electrolysis","Combustion","Fusion","Oxidation"],a:1,x:'Combustion of hydrogen with oxygen produces water and releases significant energy.'},
+  {cat:'Science',icon:'⚗️',q:'Which is the rarest blood type among humans?',c:["A negative","B negative","AB negative","O negative"],a:2,x:'AB negative is the rarest blood type occurring in less than 1% of the population.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the astronomical phenomenon where a star passes in front of another?',c:["Occultation","Eclipse","Transit","Conjunction"],a:0,x:'An occultation occurs when one celestial body passes in front of another blocking it from view.'},
+  {cat:'Science',icon:'🧬',q:'What is the term for organisms that eat both plants and animals?',c:["Herbivores","Carnivores","Omnivores","Detritivores"],a:2,x:'Omnivores can digest and obtain nutrients from both plant and animal sources.'},
+  {cat:'Science',icon:'🔭',q:'Which process in stars converts hydrogen to helium releasing enormous energy?',c:["Fission","Fusion","Beta decay","Alpha decay"],a:1,x:'Nuclear fusion in stellar cores combines hydrogen nuclei into helium releasing energy described by E=mc2.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the phenomenon where heated gas glows with characteristic colors?',c:["Fluorescence","Emission spectrum","Blackbody radiation","Phosphorescence"],a:1,x:'Each element emits a unique emission spectrum allowing astronomers to identify elements in distant stars.'},
+  {cat:'Science',icon:'⚗️',q:'Which enzyme is responsible for joining DNA fragments during replication?',c:["Helicase","Primase","DNA ligase","Topoisomerase"],a:2,x:'DNA ligase joins Okazaki fragments on the lagging strand during DNA replication.'},
+  {cat:'Science',icon:'🌍',q:'How far is the Moon from Earth on average?',c:["150,000 km","384,400 km","768,000 km","1.2 million km"],a:1,x:'The Moon is about 384,400 km from Earth on average varying as it follows its elliptical orbit.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the theory explaining how species change over time?',c:["Lamarckism","Creationism","Evolution","Punctuated equilibrium"],a:2,x:'Evolution by natural selection explains how populations of organisms change over successive generations.'},
+  {cat:'Science',icon:'🔭',q:'Which part of the electromagnetic spectrum has wavelengths between visible light and radio waves?',c:["Ultraviolet","X-rays","Infrared","Microwaves"],a:2,x:'Infrared radiation has wavelengths longer than visible light and is emitted by warm objects as heat.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the molecule that stores and transfers energy in cells?',c:["DNA","RNA","ATP","ADP"],a:2,x:'ATP (adenosine triphosphate) is the universal energy currency of living cells.'},
+  {cat:'Science',icon:'⚗️',q:'Which scientist developed the periodic table of elements?',c:["John Dalton","Antoine Lavoisier","Dmitri Mendeleev","Henry Moseley"],a:2,x:'Mendeleev published his periodic table in 1869 arranging elements by atomic weight and predicting undiscovered elements.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the organ that produces testosterone in males?',c:["Prostate","Adrenal glands","Pituitary","Testes"],a:3,x:'The testes produce testosterone which drives development of male characteristics and sperm production.'},
+  {cat:'Science',icon:'🧬',q:'Which type of radiation is emitted by a radioactive nucleus as a helium nucleus?',c:["Alpha radiation","Beta radiation","Gamma radiation","Neutron radiation"],a:0,x:'Alpha radiation consists of alpha particles which are identical to helium-4 nuclei (2 protons and 2 neutrons).'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the structural unit that makes up all living organisms?',c:["Nucleus","Atom","Cell","Organ"],a:2,x:'The cell is the basic structural and functional unit of all living organisms.'},
+  {cat:'Science',icon:'🔬',q:'Which planet is farthest from the Sun in our solar system?',c:["Uranus","Saturn","Neptune","Pluto"],a:2,x:'Neptune is the farthest planet from the Sun at an average distance of 4.5 billion km.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the process by which plants release water vapor through their leaves?',c:["Evaporation","Perspiration","Transpiration","Respiration"],a:2,x:'Transpiration is the process by which plants release water vapor through stomata in their leaves.'},
+  {cat:'Science',icon:'🌍',q:'Which scientist discovered the electron in 1897?',c:["Ernest Rutherford","Niels Bohr","J.J. Thomson","Max Planck"],a:2,x:'J.J. Thomson discovered the electron using cathode ray tubes proving atoms had smaller components.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the bond angle in a water molecule?',c:["90 degrees","120 degrees","104.5 degrees","180 degrees"],a:2,x:'The H-O-H bond angle in water is about 104.5 degrees due to the repulsion of lone electron pairs.'},
+  {cat:'Science',icon:'🔭',q:'Which constellation contains the North Star Polaris?',c:["Ursa Major","Cassiopeia","Orion","Ursa Minor"],a:3,x:'Polaris the North Star lies at the tip of the handle of Ursa Minor the Little Dipper.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the theory that describes the origin of the universe?',c:["Steady State theory","Oscillating universe","Big Bang theory","Inflationary theory"],a:2,x:'The Big Bang theory proposes that the universe began from an extremely hot dense state about 13.8 billion years ago.'},
+  {cat:'Science',icon:'⚗️',q:'Which element is represented by the symbol W on the periodic table?',c:["Tungsten","Wolfram","Bismuth","Titanium"],a:0,x:'Tungsten\'s symbol W comes from its German name Wolfram; it has the highest melting point of all metals.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the process by which antibiotics kill bacteria?',c:["Disrupting DNA replication","Targeting cell walls and protein synthesis","Inhibiting photosynthesis","Blocking nerve signals"],a:1,x:'Antibiotics kill bacteria by disrupting cell wall synthesis protein production DNA replication or other critical processes.'},
+  {cat:'Science',icon:'🧬',q:'Which type of symmetry do most animals have?',c:["Radial symmetry","Bilateral symmetry","Spherical symmetry","Asymmetry"],a:1,x:'Bilateral symmetry means an organism can be divided into two mirror halves along one plane.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the most abundant protein in the human body?',c:["Hemoglobin","Actin","Collagen","Myosin"],a:2,x:'Collagen makes up about 30% of all proteins in the human body providing structure to skin bones and tendons.'},
+  {cat:'Science',icon:'🔬',q:'Which planet experiences the most extreme temperature variation between day and night?',c:["Mars","Venus","Mercury","Moon"],a:2,x:'Mercury ranges from -180C at night to 430C during the day because it lacks a significant atmosphere.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the genetic material that carries instructions from DNA to ribosomes?',c:["tRNA","rRNA","mRNA","snRNA"],a:2,x:'Messenger RNA (mRNA) carries the genetic code from DNA in the nucleus to ribosomes in the cytoplasm.'},
+  {cat:'Science',icon:'🌍',q:'Which scientist formulated the laws of electrical circuits including Ohm\'s Law?',c:["Michael Faraday","James Clerk Maxwell","Georg Simon Ohm","Alessandro Volta"],a:2,x:'Georg Ohm discovered that current through a conductor is proportional to voltage and inversely proportional to resistance.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the process that separates DNA fragments by size using an electric field?',c:["PCR","Western blot","Gel electrophoresis","Southern blot"],a:2,x:'Gel electrophoresis separates DNA fragments as they migrate through a gel at different rates based on size.'},
+  {cat:'Science',icon:'🔭',q:'Which astronomical object has such strong gravity that not even light can escape?',c:["Neutron star","White dwarf","Pulsar","Black hole"],a:3,x:'A black hole forms when matter collapses to an infinitely dense singularity creating a region nothing can escape.'},
+  {cat:'Science',icon:'🔬',q:'What is the chemical symbol for silver?',c:["Si","Sv","Ag","Sr"],a:2,x:'Silver\'s symbol Ag comes from the Latin argentum.'},
+  {cat:'Science',icon:'⚗️',q:'Which part of the human brain processes emotions and is involved in the fight-or-flight response?',c:["Cerebellum","Hippocampus","Amygdala","Frontal lobe"],a:2,x:'The amygdala plays a key role in processing fear anxiety and other emotions.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the region of a cell membrane that is hydrophobic?',c:["Phosphate head","Glycerol backbone","Fatty acid tails","Cholesterol"],a:2,x:'The fatty acid tails of phospholipids are hydrophobic pointing inward away from water in the cell membrane.'},
+  {cat:'Science',icon:'🧬',q:'Which law states that energy cannot be created or destroyed only converted?',c:["Second law of thermodynamics","Law of conservation of mass","First law of thermodynamics","Zeroth law of thermodynamics"],a:2,x:'The first law of thermodynamics is the law of conservation of energy.'},
+  {cat:'Science',icon:'🔭',q:'Which planet is often called Earth\'s twin due to its similar size?',c:["Mars","Mercury","Venus","Neptune"],a:2,x:'Venus is nearly the same size as Earth with a diameter 95% of Earth\'s though its atmosphere is very different.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the organ that secretes hormones directly into the bloodstream?',c:["Exocrine gland","Salivary gland","Endocrine gland","Sweat gland"],a:2,x:'Endocrine glands like the thyroid and adrenal glands secrete hormones directly into the bloodstream.'},
+  {cat:'Science',icon:'⚗️',q:'Which element is essential for plant growth and found in chlorophyll?',c:["Calcium","Iron","Magnesium","Phosphorus"],a:2,x:'Magnesium is the central atom of the chlorophyll molecule essential for photosynthesis.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the phenomenon where electrons are ejected from a metal by light?',c:["Compton scattering","Photoelectric effect","Fluorescence","Phosphorescence"],a:1,x:'Einstein explained the photoelectric effect in 1905 showing light behaves as particles (photons).'},
+  {cat:'Science',icon:'🧬',q:'Which type of bond connects amino acids in a protein chain?',c:["Ester bond","Peptide bond","Glycosidic bond","Disulfide bond"],a:1,x:'Peptide bonds connect amino acids through a condensation reaction forming the backbone of proteins.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the cycle that describes carbon moving through the environment?',c:["Nitrogen cycle","Water cycle","Carbon cycle","Phosphorus cycle"],a:2,x:'The carbon cycle describes how carbon moves through the atmosphere oceans land and living organisms.'},
+  {cat:'Science',icon:'🔬',q:'Which planet in our solar system is the least dense, able to float in water?',c:["Jupiter","Uranus","Neptune","Saturn"],a:3,x:'Saturn\'s density of 0.69 g/cm3 is less than water making it the only planet that would float.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the scientist who discovered radioactivity?',c:["Pierre Curie","Ernest Rutherford","Henri Becquerel","Marie Curie"],a:2,x:'Henri Becquerel discovered radioactivity in 1896 when uranium salts exposed a photographic plate spontaneously.'},
+  {cat:'Science',icon:'🌍',q:'Which organ produces the hormone adrenaline (epinephrine)?',c:["Thyroid","Pituitary","Pancreas","Adrenal glands"],a:3,x:'The adrenal glands located atop the kidneys produce adrenaline in response to stress triggering the fight-or-flight response.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the imaginary line dividing Earth into Northern and Southern hemispheres?',c:["Tropic of Cancer","Arctic Circle","Equator","Prime Meridian"],a:2,x:'The Equator is an imaginary line at 0 degrees latitude dividing Earth into Northern and Southern hemispheres.'},
+  {cat:'Science',icon:'🔬',q:'Which scientist developed the germ theory of disease?',c:["Joseph Lister","Robert Koch","Louis Pasteur","Alexander Fleming"],a:2,x:'Louis Pasteur\'s germ theory proved that microorganisms cause disease revolutionizing medicine in the 19th century.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the outer layer of Earth?',c:["Mantle","Asthenosphere","Core","Crust"],a:3,x:'Earth\'s crust is the thin outermost layer ranging from 5 km under oceans to 70 km under mountains.'},
+  {cat:'Science',icon:'🧬',q:'Which organelle is called the protein factory of the cell?',c:["Mitochondria","Nucleus","Golgi body","Ribosome"],a:3,x:'Ribosomes translate mRNA into proteins making them the protein manufacturing centers of the cell.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the closest galaxy to the Milky Way?',c:["Triangulum","Pinwheel","Magellanic Cloud","Andromeda"],a:2,x:'The Large Magellanic Cloud is the closest galaxy to the Milky Way at about 160,000 light-years away.'},
+  {cat:'Science',icon:'🔬',q:'Which gas is produced during fermentation of sugars by yeast?',c:["Oxygen","Hydrogen","Carbon dioxide","Methane"],a:2,x:'Yeast ferments sugars to produce ethanol and carbon dioxide the basis of bread rising and alcohol production.'},
+  {cat:'Science',icon:'⚗️',q:'What is the chemical formula for ammonia?',c:["NO2","H2O2","NH3","CH4"],a:2,x:'Ammonia NH3 consists of one nitrogen atom bonded to three hydrogen atoms.'},
+  {cat:'Science',icon:'🧬',q:'Which part of the human ear converts sound vibrations into electrical signals?',c:["Eardrum","Cochlea","Ossicles","Eustachian tube"],a:1,x:'The cochlea a fluid-filled spiral structure converts sound vibrations into electrical signals sent to the brain.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the force that causes a spinning top to resist falling over?',c:["Centrifugal force","Angular momentum","Precession","Gyroscopic effect"],a:3,x:'The gyroscopic effect of a spinning object gives it stability against tipping over.'},
+  {cat:'Science',icon:'🔬',q:'Which mineral is the most common in Earth\'s continental crust?',c:["Calcite","Feldspar","Quartz","Olivine"],a:1,x:'Feldspar minerals make up about 60% of Earth\'s continental crust by volume.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the virus that causes AIDS?',c:["HPV","HSV","HCV","HIV"],a:3,x:'HIV (Human Immunodeficiency Virus) attacks CD4 T cells weakening the immune system leading to AIDS.'},
+  {cat:'Science',icon:'🧬',q:'Which planet has a storm called the Great Red Spot?',c:["Saturn","Neptune","Uranus","Jupiter"],a:3,x:'Jupiter\'s Great Red Spot is a storm larger than Earth that has been raging for at least 350 years.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the reaction where two atomic nuclei combine to form a heavier nucleus?',c:["Fission","Radioactive decay","Fusion","Transmutation"],a:2,x:'Nuclear fusion powers stars by combining light nuclei like hydrogen into heavier elements releasing enormous energy.'},
+  {cat:'Science',icon:'🔬',q:'Which vitamin is essential for blood clotting?',c:["Vitamin A","Vitamin C","Vitamin D","Vitamin K"],a:3,x:'Vitamin K is essential for producing the proteins required for blood clotting.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the genetic mutation that causes sickle cell disease?',c:["Point deletion","Frameshift","Point substitution","Chromosomal translocation"],a:2,x:'Sickle cell disease is caused by a single point mutation in the hemoglobin gene changing one amino acid.'},
+  {cat:'Science',icon:'🌍',q:'Which is the most reactive group of metals on the periodic table?',c:["Transition metals","Alkaline earth metals","Noble metals","Alkali metals"],a:3,x:'Alkali metals like sodium and potassium are extremely reactive readily losing their single outer electron.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the boundary where two tectonic plates meet and one slides under the other?',c:["Transform boundary","Divergent boundary","Subduction zone","Rift zone"],a:2,x:'At subduction zones denser oceanic crust slides under lighter continental crust creating volcanoes and earthquakes.'},
+  {cat:'Science',icon:'🔭',q:'Which type of electromagnetic radiation has the longest wavelength?',c:["X-rays","Microwaves","Radio waves","Infrared"],a:2,x:'Radio waves have the longest wavelengths in the electromagnetic spectrum ranging from millimeters to kilometers.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the process by which a caterpillar transforms into a butterfly?',c:["Pupation","Metamorphosis","Molting","Ecdysis"],a:1,x:'Complete metamorphosis (holometabolism) involves egg larva pupa and adult stages in butterflies.'},
+  {cat:'Science',icon:'⚗️',q:'Which element has the highest atomic number that occurs naturally on Earth?',c:["Thorium","Uranium","Plutonium","Radium"],a:1,x:'Uranium with atomic number 92 is the highest naturally occurring element in significant quantities on Earth.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the protein shell that surrounds a virus?',c:["Cell wall","Capsid","Envelope","Flagellum"],a:1,x:'The capsid is the protein coat that surrounds a virus protecting its genetic material.'},
+  {cat:'Science',icon:'🧬',q:'Which planet experiences the most violent storms in the solar system?',c:["Saturn","Jupiter","Uranus","Neptune"],a:3,x:'Neptune has the fastest winds in the solar system reaching over 2,100 km/h in its massive storms.'},
+  {cat:'Science',icon:'🔭',q:'What is the term for the number of protons in the nucleus of an atom?',c:["Mass number","Atomic weight","Atomic number","Neutron number"],a:2,x:'The atomic number uniquely identifies each element and equals the number of protons in its nucleus.'},
+  {cat:'Science',icon:'🔬',q:'Which structure in the human body produces sperm cells?',c:["Epididymis","Seminal vesicle","Vas deferens","Seminiferous tubules"],a:3,x:'Seminiferous tubules in the testes are the site where spermatogenesis (sperm production) occurs.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the chemical that plants use to transport water from roots to leaves?',c:["Osmosis","Photosynthate","Xylem","Sap"],a:2,x:'Xylem is the plant tissue that transports water and dissolved minerals from roots to leaves.'},
+  {cat:'Science',icon:'🌍',q:'Which phenomenon is described by the equation E=mc2?',c:["Quantum entanglement","Conservation of momentum","Mass-energy equivalence","The photoelectric effect"],a:2,x:'Einstein\'s famous equation shows that mass and energy are interchangeable with c (speed of light) as the conversion factor.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the largest volcano on Earth?',c:["Mount Everest","Krakatoa","Mauna Loa","Mount St. Helens"],a:2,x:'Mauna Loa in Hawaii is the world\'s largest volcano by volume though not the tallest above sea level.'},
+  {cat:'Science',icon:'🔭',q:'Which type of chemical bond involves one atom donating electrons to another?',c:["Covalent bond","Ionic bond","Metallic bond","Hydrogen bond"],a:1,x:'Ionic bonds form when electrons are completely transferred from one atom to another creating charged ions.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the phenomenon where particles appear to influence each other instantly regardless of distance?',c:["Superposition","Wave-particle duality","Quantum entanglement","Uncertainty principle"],a:2,x:'Quantum entanglement means measuring one particle instantly affects its entangled partner regardless of distance.'},
+  {cat:'Science',icon:'⚗️',q:'Which organ system includes the lungs and is responsible for gas exchange?',c:["Circulatory system","Excretory system","Digestive system","Respiratory system"],a:3,x:'The respiratory system exchanges oxygen for carbon dioxide at the alveoli in the lungs.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the scale used to measure the hardness of minerals?',c:["Beaufort scale","Richter scale","Mohs scale","pH scale"],a:2,x:'The Mohs hardness scale rates minerals from 1 (talc) to 10 (diamond) based on scratch resistance.'},
+  {cat:'Science',icon:'🧬',q:'Which comet famously passes near Earth every 75-76 years?',c:["Hale-Bopp","Shoemaker-Levy 9","Halley\'s Comet","Encke\'s Comet"],a:2,x:'Halley\'s Comet last visible in 1986 will next appear around 2061.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the protein that makes tendons and ligaments strong?',c:["Actin","Collagen","Elastin","Fibrin"],a:1,x:'Collagen provides tensile strength to tendons ligaments skin and bones.'},
+  {cat:'Science',icon:'🔬',q:'Which plant hormone stimulates cell elongation and is involved in bending toward light?',c:["Cytokinin","Gibberellin","Ethylene","Auxin"],a:3,x:'Auxin produced in shoot tips causes cells on the shaded side to elongate bending the plant toward light.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the region of a chromosome where spindle fibers attach during cell division?',c:["Telomere","Centrosome","Chromatid","Centromere"],a:3,x:'The centromere is the constricted region of a chromosome where spindle fibers attach during mitosis and meiosis.'},
+  {cat:'Science',icon:'🌍',q:'Which gas makes up most of the atmospheres of Jupiter and Saturn?',c:["Helium","Methane","Hydrogen","Ammonia"],a:2,x:'Jupiter and Saturn are gas giants composed primarily of hydrogen (about 90%) and helium.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the process by which organisms are classified into groups?',c:["Genetics","Taxonomy","Morphology","Ecology"],a:1,x:'Taxonomy is the science of naming describing and classifying organisms based on shared characteristics.'},
+  {cat:'Science',icon:'🔭',q:'Which planet has the most extreme axial tilt in the solar system?',c:["Jupiter","Saturn","Neptune","Uranus"],a:3,x:'Uranus has an axial tilt of about 98 degrees causing extreme seasons and unusual rotation.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the force that causes a river to curve and meander?',c:["Friction","Coriolis effect","Centripetal force","Bernoulli effect"],a:1,x:'The Coriolis effect caused by Earth\'s rotation deflects moving water and air to the right in the Northern Hemisphere.'},
+  {cat:'Science',icon:'⚗️',q:'Which type of rock forms when sediments are compacted and cemented together?',c:["Igneous","Metamorphic","Volcanic","Sedimentary"],a:3,x:'Sedimentary rocks like sandstone and limestone form when sediments accumulate and harden over millions of years.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the molecule that carries amino acids to the ribosome during protein synthesis?',c:["mRNA","rRNA","tRNA","snRNA"],a:2,x:'Transfer RNA (tRNA) matches anticodons to mRNA codons delivering the correct amino acid to the growing protein chain.'},
+  {cat:'Science',icon:'🧬',q:'Which scientist proposed that light travels in discrete packets called quanta?',c:["Albert Einstein","Niels Bohr","Max Planck","Werner Heisenberg"],a:2,x:'Max Planck proposed in 1900 that energy is emitted in discrete quanta launching the quantum revolution.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the junction between two neurons?',c:["Axon terminal","Dendrite","Synapse","Node of Ranvier"],a:2,x:'The synapse is the gap between two neurons where neurotransmitters are released to transmit signals.'},
+  {cat:'Science',icon:'🔬',q:'Which element has the chemical symbol Hg?',c:["Hydrogen","Helium","Mercury","Hafnium"],a:2,x:'Mercury\'s symbol Hg comes from the Latin hydrargyrum meaning liquid silver.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the enzyme that converts glucose to pyruvate during glycolysis?',c:["ATP synthase","Pyruvate kinase","Hexokinase","Phosphofructokinase"],a:1,x:'Multiple enzymes work in glycolysis but pyruvate kinase catalyzes the final step converting PEP to pyruvate.'},
+  {cat:'Science',icon:'🌍',q:'Which phenomenon causes the apparent change in frequency of a wave as its source moves?',c:["Interference","Refraction","Doppler effect","Resonance"],a:2,x:'The Doppler effect explains why an ambulance siren sounds higher-pitched as it approaches and lower as it moves away.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the protein that allows muscles to relax?',c:["Actin","Myosin","Troponin","Tropomyosin"],a:3,x:'Tropomyosin covers actin\'s binding sites at rest; calcium-activated troponin moves it allowing muscle contraction.'},
+  {cat:'Science',icon:'🔭',q:'Which physicist discovered that the atom has a dense central nucleus?',c:["J.J. Thomson","Niels Bohr","Ernest Rutherford","James Chadwick"],a:2,x:'Rutherford\'s 1909 gold foil experiment revealed the existence of the dense positive nucleus at an atom\'s center.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the theoretical boundary around a black hole beyond which nothing can escape?',c:["Accretion disk","Photon sphere","Event horizon","Singularity"],a:2,x:'The event horizon is the point of no return around a black hole where escape velocity exceeds the speed of light.'},
+  {cat:'Science',icon:'⚗️',q:'Which molecule serves as the primary energy storage in plants?',c:["Cellulose","Starch","Glycogen","Glucose"],a:1,x:'Plants store excess glucose as starch a polymer of glucose units in their cells.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of the region at the center of a galaxy where a supermassive black hole resides?',c:["Star cluster","Globular cluster","Galactic nucleus","Galactic halo"],a:2,x:'Most large galaxies including the Milky Way have a supermassive black hole at their galactic nucleus.'},
+  {cat:'Science',icon:'🧬',q:'Which type of immunity is acquired through vaccination?',c:["Innate immunity","Passive immunity","Active immunity","Natural immunity"],a:2,x:'Vaccination stimulates active immunity by exposing the immune system to antigens triggering antibody production.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the force that prevents matter from occupying the same space?',c:["Gravity","Electromagnetic force","Pauli exclusion principle","Strong nuclear force"],a:2,x:'The Pauli exclusion principle states that no two identical fermions can occupy the same quantum state.'},
+  {cat:'Science',icon:'🔬',q:'Which chemical element glows green under ultraviolet light when dissolved in water?',c:["Uranium","Radium","Fluorescein","Quinine"],a:3,x:'Quinine in tonic water fluoresces blue-white under UV light due to its molecular structure.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the tree-like structure in neurons that receives signals?',c:["Axon","Soma","Synapse","Dendrite"],a:3,x:'Dendrites are branching extensions of neurons that receive chemical signals from other neurons.'},
+  {cat:'Science',icon:'🌍',q:'Which planet has the highest surface gravity in our solar system?',c:["Earth","Saturn","Neptune","Jupiter"],a:3,x:'Jupiter\'s surface gravity is about 2.4 times Earth\'s due to its enormous mass.'},
+  {cat:'Science',icon:'🧬',q:'What is the name of the process by which atoms emit light when their electrons return to lower energy levels?',c:["Fluorescence","Emission","Incandescence","Phosphorescence"],a:1,x:'Emission spectra occur when excited electrons release photons of specific wavelengths as they return to ground state.'},
+  {cat:'Science',icon:'🔭',q:'Which ocean is the deepest on Earth?',c:["Atlantic","Arctic","Indian","Pacific"],a:3,x:'The Pacific Ocean contains the Mariana Trench the deepest point on Earth at about 11,000 meters deep.'},
+  {cat:'Science',icon:'🔬',q:'What is the name of the effect where a spinning object precesses around an axis?',c:["Nutation","Gyroscopic precession","Torque","Angular momentum"],a:1,x:'Gyroscopic precession causes a spinning top to wobble as gravity pulls it explaining how gyroscopes maintain orientation.'},
+  {cat:'Science',icon:'⚗️',q:'Which part of a neuron transmits signals to other cells?',c:["Dendrite","Cell body","Axon","Myelin sheath"],a:2,x:'The axon is the long projection of a neuron that transmits electrical impulses away from the cell body.'},
+  {cat:'Science',icon:'🌍',q:'What is the name of Earth\'s only natural satellite?',c:["Europa","Titan","Deimos","Moon"],a:3,x:'The Moon is Earth\'s only natural satellite with a diameter of about 3,474 km.'},
+  {cat:'Science',icon:'🧬',q:'Which organelle modifies packages and ships proteins in the cell?',c:["Ribosome","Mitochondria","Endoplasmic reticulum","Golgi apparatus"],a:3,x:'The Golgi apparatus acts as the cell\'s post office receiving proteins from the ER and shipping them to their destinations.'},
+  {cat:'Science',icon:'🔭',q:'What is the name of the theorem relating the sides of a right triangle?',c:["Euler\'s theorem","Pythagorean theorem","Fermat\'s theorem","Binomial theorem"],a:1,x:'The Pythagorean theorem states that a2 + b2 = c2 for a right triangle where c is the hypotenuse.'},
+  {cat:'Science',icon:'🔬',q:'Which branch of physics describes the behavior of matter at the atomic and subatomic scale?',c:["Classical mechanics","Relativity","Quantum mechanics","Thermodynamics"],a:2,x:'Quantum mechanics developed in the early 20th century describes physics at the smallest scales.'},
+  {cat:'Science',icon:'⚗️',q:'What is the name of the physical law stating that pressure and volume of a gas are inversely proportional?',c:["Charles\'s Law","Avogadro\'s Law","Gay-Lussac\'s Law","Boyle\'s Law"],a:3,x:'Boyle\'s Law states that at constant temperature the pressure and volume of a gas are inversely proportional.'},
+  {cat:'Science',icon:'🌍',q:'Which vitamin prevents scurvy a disease caused by collagen breakdown?',c:["Vitamin A","Vitamin B12","Vitamin C","Vitamin E"],a:2,x:'Vitamin C (ascorbic acid) is essential for collagen synthesis; its deficiency causes scurvy.'}
+,
+  {cat:'Geography',icon:'🌍',q:'Which country has the most natural lakes in the world?',c:["Russia","Brazil","United States","Canada"],a:3,x:'Canada has over 60% of the world\'s lakes with more than 3 million freshwater lakes.'},
+  {cat:'Geography',icon:'🌍',q:'What is the longest river in the world?',c:["Amazon","Congo","Mississippi","Nile"],a:3,x:'The Nile stretches about 6,650 km making it the longest river in the world.'},
+  {cat:'Geography',icon:'🌍',q:'Which desert is the largest in the world?',c:["Sahara","Gobi","Arabian","Antarctic"],a:3,x:'The Antarctic Desert covering 14.2 million sq km is the largest desert far bigger than the Sahara.'},
+  {cat:'Geography',icon:'🌍',q:'What is the deepest lake in the world?',c:["Lake Superior","Lake Titicaca","Lake Baikal","Caspian Sea"],a:2,x:'Lake Baikal in Siberia reaches 1,642 meters deep and holds 20% of the world\'s unfrozen surface fresh water.'},
+  {cat:'Geography',icon:'🌍',q:'Which mountain range separates Europe from Asia?',c:["Caucasus","Alps","Carpathians","Ural Mountains"],a:3,x:'The Ural Mountains stretch 2,500 km and form the traditional boundary between Europe and Asia.'},
+  {cat:'Geography',icon:'🌍',q:'What is the smallest country in the world by area?',c:["Monaco","San Marino","Liechtenstein","Vatican City"],a:3,x:'Vatican City covers just 0.44 square kilometers making it the world\'s smallest country.'},
+  {cat:'Geography',icon:'🌍',q:'Which ocean is the largest?',c:["Atlantic","Indian","Arctic","Pacific"],a:3,x:'The Pacific Ocean covers about 165 million square kilometers larger than all Earth\'s landmasses combined.'},
+  {cat:'Geography',icon:'🌍',q:'What is the capital city of Australia?',c:["Sydney","Melbourne","Brisbane","Canberra"],a:3,x:'Canberra has been Australia\'s capital since 1913 chosen as a compromise between Sydney and Melbourne.'},
+  {cat:'Geography',icon:'🌍',q:'Which African country has the largest population?',c:["Ethiopia","Egypt","South Africa","Nigeria"],a:3,x:'Nigeria has over 220 million people making it the most populous country in Africa.'},
+  {cat:'Geography',icon:'🌍',q:'What is the name of the world\'s longest mountain range?',c:["Himalayas","Rockies","Andes","Alps"],a:2,x:'The Andes stretch 7,000 km along South America\'s western coast making them the world\'s longest continental range.'},
+  {cat:'Geography',icon:'🌍',q:'Which country contains the most of the Amazon rainforest?',c:["Colombia","Venezuela","Peru","Brazil"],a:3,x:'Brazil contains about 60% of the Amazon rainforest the world\'s largest tropical rainforest.'},
+  {cat:'Geography',icon:'🌍',q:'What is the tallest mountain in the world?',c:["K2","Kangchenjunga","Lhotse","Mount Everest"],a:3,x:'Mount Everest stands 8,849 meters above sea level making it Earth\'s highest point.'},
+  {cat:'Geography',icon:'🌍',q:'Which sea is the saltiest body of water on Earth?',c:["Red Sea","Dead Sea","Caspian Sea","Aral Sea"],a:1,x:'The Dead Sea has a salinity of about 34% nearly 10 times saltier than average ocean water.'},
+  {cat:'Geography',icon:'🌍',q:'Which country has the longest coastline in the world?',c:["Russia","Norway","Australia","Canada"],a:3,x:'Canada has a coastline of approximately 202,080 km the longest in the world.'},
+  {cat:'Geography',icon:'🌍',q:'What is the largest continent by area?',c:["Africa","North America","Antarctica","Asia"],a:3,x:'Asia covers about 44.6 million square kilometers making it the largest continent by both area and population.'},
+  {cat:'Geography',icon:'🌍',q:'Which country has the most volcanoes?',c:["Japan","Italy","Indonesia","United States"],a:2,x:'Indonesia has over 130 active volcanoes sitting on the Pacific Ring of Fire.'},
+  {cat:'Geography',icon:'🌍',q:'What is the capital of Canada?',c:["Toronto","Vancouver","Montreal","Ottawa"],a:3,x:'Ottawa has been Canada\'s capital since 1857 chosen partly for its distance from the US border.'},
+  {cat:'Geography',icon:'🌍',q:'Which river flows through the most countries?',c:["Amazon","Rhine","Congo","Danube"],a:3,x:'The Danube flows through 10 countries in Europe more than any other river.'},
+  {cat:'Geography',icon:'🌍',q:'What is the name of the largest hot desert in the world?',c:["Arabian","Kalahari","Sahara","Gobi"],a:2,x:'The Sahara covers about 9.2 million square kilometers across northern Africa.'},
+  {cat:'Geography',icon:'🌍',q:'Which country is both a continent and a country?',c:["Greenland","New Zealand","Iceland","Australia"],a:3,x:'Australia is the only country that is also its own continent.'},
+  {cat:'Geography',icon:'🌍',q:'What is the largest island in the world?',c:["Borneo","Madagascar","Greenland","New Guinea"],a:2,x:'Greenland covers 2.16 million square kilometers making it the world\'s largest island.'},
+  {cat:'Geography',icon:'🌍',q:'Which city sits on two continents?',c:["Cairo","Jerusalem","Istanbul","Tehran"],a:2,x:'Istanbul straddles Europe and Asia divided by the Bosphorus Strait.'},
+  {cat:'Geography',icon:'🌍',q:'What is the highest waterfall in the world?',c:["Niagara Falls","Victoria Falls","Iguazu Falls","Angel Falls"],a:3,x:'Angel Falls in Venezuela drops 979 meters making it the world\'s highest uninterrupted waterfall.'},
+  {cat:'Geography',icon:'🌍',q:'Which country has the most time zones?',c:["USA","China","Russia","France"],a:3,x:'France with its overseas territories spans 12 time zones the most of any country.'},
+  {cat:'Geography',icon:'🌍',q:'What is the name of the strait separating Africa from Europe?',c:["Strait of Hormuz","Strait of Malacca","Strait of Gibraltar","Strait of Magellan"],a:2,x:'The Strait of Gibraltar at its narrowest is only 14 km wide separating Spain from Morocco.'},
+  {cat:'Geography',icon:'🌍',q:'Which country has the largest land area in the world?',c:["Canada","China","United States","Russia"],a:3,x:'Russia covers 17.1 million square kilometers nearly twice the size of Canada.'},
+  {cat:'Geography',icon:'🌍',q:'What is the name of the longest river in South America?',c:["Orinoco","Parana","Amazon","Rio de la Plata"],a:2,x:'The Amazon River at about 6,400 km is the longest river in South America.'},
+  {cat:'Geography',icon:'🌍',q:'What is the name of the peninsula that contains Spain and Portugal?',c:["Apennine Peninsula","Balkan Peninsula","Scandinavian Peninsula","Iberian Peninsula"],a:3,x:'The Iberian Peninsula in southwestern Europe contains Spain Portugal and a small part of France.'},
+  {cat:'Geography',icon:'🌍',q:'Which African country is the largest by area?',c:["Sudan","Libya","Democratic Republic of Congo","Algeria"],a:3,x:'Algeria covers 2.38 million square kilometers making it the largest country in Africa.'},
+  {cat:'Geography',icon:'🌍',q:'What is the capital of Brazil?',c:["Rio de Janeiro","Sao Paulo","Salvador","Brasilia"],a:3,x:'Brasilia replaced Rio de Janeiro as Brazil\'s capital in 1960 built from scratch in the interior.'},
+  {cat:'Geography',icon:'🌍',q:'Which mountain is the highest in Africa?',c:["Mount Kenya","Mount Kilimanjaro","Rwenzori","Ras Dashen"],a:1,x:'Mount Kilimanjaro in Tanzania at 5,895 meters is the highest peak in Africa.'},
+  {cat:'Geography',icon:'🌍',q:'What is the name of the world\'s largest coral reef system?',c:["Florida Reef","Mesoamerican Barrier Reef","Red Sea Coral Reef","Great Barrier Reef"],a:3,x:'Australia\'s Great Barrier Reef stretches 2,300 km and is the world\'s largest coral reef system.'},
+  {cat:'Geography',icon:'🌍',q:'Which European country has the most UNESCO World Heritage Sites?',c:["France","Spain","Greece","Italy"],a:3,x:'Italy leads the world with 58 UNESCO World Heritage Sites.'},
+  {cat:'Geography',icon:'🌍',q:'Which country has the highest average elevation?',c:["Nepal","Tibet","Bhutan","China"],a:2,x:'Bhutan has an average elevation of about 3,280 meters making it the highest average-elevation country.'},
+  {cat:'Geography',icon:'🌍',q:'What is the largest lake in Africa?',c:["Lake Tanganyika","Lake Malawi","Lake Chad","Lake Victoria"],a:3,x:'Lake Victoria shared by Uganda Tanzania and Kenya is the largest lake in Africa by area.'},
+  {cat:'Geography',icon:'🌍',q:'Which country has the most borders with other countries?',c:["Brazil","Sudan","China","Russia"],a:2,x:'China borders 14 countries the most of any nation in the world.'},
+  {cat:'Geography',icon:'🌍',q:'Which ocean is the smallest?',c:["Southern","Indian","Atlantic","Arctic"],a:3,x:'The Arctic Ocean covers about 14.06 million square kilometers making it the smallest of the five oceans.'},
+  {cat:'Geography',icon:'🌍',q:'Which country has the world\'s highest capital city?',c:["Peru","Nepal","Ecuador","Bolivia"],a:3,x:'La Paz Bolivia sits at about 3,640 meters above sea level making it the world\'s highest capital city.'},
+  {cat:'Geography',icon:'🌍',q:'Which country contains the most of the world\'s tropical rainforest?',c:["Indonesia","Democratic Republic of Congo","Colombia","Brazil"],a:3,x:'Brazil contains approximately 40% of the world\'s remaining tropical rainforests.'},
+  {cat:'Geography',icon:'🌍',q:'Which country has the longest land border shared between two nations?',c:["Russia","China","United States","Canada"],a:3,x:'Canada and the United States share a border of 8,891 km the longest international land border in the world.'},
+  {cat:'Sports',icon:'⚽',q:'How many players are on a standard soccer team on the field?',c:["9","10","11","12"],a:2,x:'Each soccer team fields 11 players including the goalkeeper.'},
+  {cat:'Sports',icon:'⚽',q:'Which country has won the most FIFA World Cup titles?',c:["Germany","Argentina","Italy","Brazil"],a:3,x:'Brazil has won the FIFA World Cup a record five times.'},
+  {cat:'Sports',icon:'⚽',q:'In tennis what is the term for winning a game without the opponent scoring a point?',c:["Deuce","Love game","Bagel","Ace"],a:1,x:'A love game in tennis means winning all four points without the opponent scoring.'},
+  {cat:'Sports',icon:'⚽',q:'How many rings are on the Olympic flag?',c:["4","5","6","7"],a:1,x:'The five Olympic rings represent the five inhabited continents united by the Olympic movement.'},
+  {cat:'Sports',icon:'⚽',q:'Which sport uses a shuttlecock?',c:["Squash","Racquetball","Badminton","Pickleball"],a:2,x:'Badminton uses a shuttlecock which can reach speeds over 400 km/h in professional play.'},
+  {cat:'Sports',icon:'⚽',q:'In basketball how high is the regulation hoop from the floor?',c:["8 feet","9 feet","10 feet","11 feet"],a:2,x:'NBA basketball uses a hoop height of 10 feet (3.05 meters) above the floor.'},
+  {cat:'Sports',icon:'⚽',q:'Which country invented the sport of cricket?',c:["Australia","West Indies","India","England"],a:3,x:'Cricket originated in England in the 16th century and became the country\'s national sport.'},
+  {cat:'Sports',icon:'⚽',q:'How long is a standard marathon race?',c:["26.1 miles","26.2 miles","25.8 miles","26.5 miles"],a:1,x:'A marathon is exactly 26.2 miles (42.195 km) standardized after the 1908 London Olympics.'},
+  {cat:'Sports',icon:'⚽',q:'In golf what is the term for completing a hole in one under par?',c:["Eagle","Birdie","Bogey","Albatross"],a:1,x:'A birdie is one under par; an eagle is two under and an albatross is three under.'},
+  {cat:'Sports',icon:'⚽',q:'Which nation hosted the first modern Olympic Games in 1896?',c:["France","United States","United Kingdom","Greece"],a:3,x:'The first modern Olympic Games were held in Athens Greece in April 1896.'},
+  {cat:'Sports',icon:'⚽',q:'How many points is a touchdown worth in American football?',c:["5","6","7","8"],a:1,x:'A touchdown is worth 6 points with the option to kick an extra point or attempt a 2-point conversion.'},
+  {cat:'Sports',icon:'⚽',q:'What is the maximum score in a single game of ten-pin bowling?',c:["250","275","300","320"],a:2,x:'A perfect game in bowling scores 300 achieved by bowling 12 consecutive strikes.'},
+  {cat:'Sports',icon:'⚽',q:'Which country has won the most gold medals in Olympic history?',c:["China","Soviet Union","Great Britain","United States"],a:3,x:'The United States has won more Olympic gold medals than any other country.'},
+  {cat:'Sports',icon:'⚽',q:'In ice hockey how many players from each team are on the ice at once?',c:["4","5","6","7"],a:2,x:'Each hockey team has 6 players on ice: a goalie two defensemen and three forwards.'},
+  {cat:'Sports',icon:'⚽',q:'How many Grand Slam tennis tournaments are there per year?',c:["2","3","4","5"],a:2,x:'The four Grand Slams are the Australian Open French Open Wimbledon and US Open.'},
+  {cat:'Sports',icon:'⚽',q:'What is the term for three consecutive strikes in bowling?',c:["Hat trick","Turkey","Triple","Trifecta"],a:1,x:'Three consecutive strikes in bowling is called a turkey.'},
+  {cat:'Sports',icon:'⚽',q:'How many players are on a volleyball team on the court?',c:["4","5","6","7"],a:2,x:'A volleyball team has 6 players on the court.'},
+  {cat:'Sports',icon:'⚽',q:'Which country invented the sport of sumo wrestling?',c:["China","Mongolia","Korea","Japan"],a:3,x:'Sumo wrestling originated in Japan over 1,500 years ago and remains Japan\'s national sport.'},
+  {cat:'Sports',icon:'⚽',q:'What distance is an Olympic swimming pool?',c:["25 meters","50 meters","100 meters","200 meters"],a:1,x:'An Olympic-size swimming pool is 50 meters long 25 meters wide and at least 2 meters deep.'},
+  {cat:'Sports',icon:'⚽',q:'In rugby union how many players are on each team?',c:["13","14","15","16"],a:2,x:'Rugby union is played with 15 players per team while rugby league has 13.'},
+  {cat:'Sports',icon:'⚽',q:'What is the highest possible break in snooker?',c:["147","155","168","180"],a:0,x:'The maximum break in snooker is 147 achieved by potting all reds with blacks then all colors.'},
+  {cat:'Sports',icon:'⚽',q:'How many holes are in a standard round of golf?',c:["9","12","16","18"],a:3,x:'A standard round of golf consists of 18 holes.'},
+  {cat:'Sports',icon:'⚽',q:'Which country won the first ever FIFA Women\'s World Cup in 1991?',c:["Germany","Norway","Sweden","United States"],a:3,x:'The United States won the inaugural FIFA Women\'s World Cup held in China in 1991.'},
+  {cat:'Sports',icon:'⚽',q:'How many players make up a baseball team on the field?',c:["8","9","10","11"],a:1,x:'A baseball team fields 9 players each occupying a specific defensive position.'},
+  {cat:'Sports',icon:'⚽',q:'Which martial art translates to gentle way in Japanese?',c:["Karate","Aikido","Judo","Taekwondo"],a:2,x:'Judo meaning gentle way was created by Jigoro Kano in 1882 and became an Olympic sport in 1964.'},
+  {cat:'Sports',icon:'⚽',q:'Which country has won the most Rugby World Cup titles?',c:["England","South Africa","Australia","New Zealand"],a:3,x:'New Zealand\'s All Blacks have won the Rugby World Cup four times.'},
+  {cat:'Sports',icon:'⚽',q:'In swimming what stroke is used in the first leg of an individual medley?',c:["Freestyle","Backstroke","Breaststroke","Butterfly"],a:3,x:'The individual medley order is butterfly backstroke breaststroke and freestyle.'},
+  {cat:'Sports',icon:'⚽',q:'Which sport uses a foil epee or saber?',c:["Polo","Archery","Fencing","Equestrian"],a:2,x:'Fencing is the combat sport that uses three different weapons: foil epee and saber.'},
+  {cat:'Sports',icon:'⚽',q:'How long is an NBA basketball court?',c:["84 feet","90 feet","94 feet","98 feet"],a:2,x:'An NBA basketball court is 94 feet (28.65 meters) long and 50 feet wide.'},
+  {cat:'Sports',icon:'⚽',q:'In cricket how many balls are bowled in a standard over?',c:["4","5","6","8"],a:2,x:'A standard over in cricket consists of 6 legal deliveries bowled by one bowler.'},
+  {cat:'Sports',icon:'⚽',q:'Which sport features a libero position?',c:["Water polo","Handball","Basketball","Volleyball"],a:3,x:'The libero in volleyball is a defensive specialist who wears a different colored jersey.'},
+  {cat:'Sports',icon:'⚽',q:'Which country introduced the sport of polo?',c:["England","Argentina","Persia","India"],a:2,x:'Polo originated in ancient Persia (modern Iran) as training for cavalry units over 2,500 years ago.'},
+  {cat:'Sports',icon:'⚽',q:'How many events are in a decathlon?',c:["8","9","10","12"],a:2,x:'A decathlon consists of 10 events held over two days.'},
+  {cat:'Sports',icon:'⚽',q:'Which country has produced the most Tour de France cycling champions?',c:["Belgium","Italy","Spain","France"],a:3,x:'France has produced the most Tour de France winners overall.'},
+  {cat:'Sports',icon:'⚽',q:'In American football how many points is a safety worth?',c:["1","2","3","4"],a:1,x:'A safety scores 2 points for the defensive team when the offensive player is tackled in their own end zone.'},
+  {cat:'Sports',icon:'⚽',q:'How many sets are in a standard men\'s Grand Slam tennis final?',c:["3","4","5","6"],a:2,x:'Men\'s Grand Slam finals are best of 5 sets while women\'s finals are best of 3.'},
+  {cat:'Sports',icon:'⚽',q:'Which country invented the sport of basketball?',c:["United States","Canada","United Kingdom","Germany"],a:0,x:'Basketball was invented by Canadian-American James Naismith in 1891 in Springfield Massachusetts.'},
+  {cat:'Sports',icon:'⚽',q:'What is the maximum number of clubs allowed in a golf bag?',c:["12","14","16","18"],a:1,x:'Golf rules allow a maximum of 14 clubs in a bag during a round of play.'},
+  {cat:'Sports',icon:'⚽',q:'Which Grand Slam tennis tournament is played on clay?',c:["Australian Open","Wimbledon","US Open","French Open"],a:3,x:'The French Open at Roland Garros is the only Grand Slam played on clay courts.'},
+  {cat:'Sports',icon:'⚽',q:'What is the term for a batsman scoring 100 runs in cricket?',c:["Double","Half-century","Century","Ton"],a:2,x:'A century in cricket means a batsman has scored 100 or more runs in a single innings.'},
+  {cat:'Arts',icon:'🎨',q:'Which artist painted the Mona Lisa?',c:["Michelangelo","Raphael","Caravaggio","Leonardo da Vinci"],a:3,x:'Leonardo da Vinci painted the Mona Lisa between approximately 1503 and 1519.'},
+  {cat:'Arts',icon:'🎨',q:'Which composer wrote the Ninth Symphony featuring Ode to Joy?',c:["Mozart","Schubert","Brahms","Beethoven"],a:3,x:'Beethoven composed his Ninth Symphony in 1824 remarkably while completely deaf.'},
+  {cat:'Arts',icon:'🎨',q:'What artistic movement was Salvador Dali associated with?',c:["Cubism","Expressionism","Surrealism","Dadaism"],a:2,x:'Dali was the most famous Surrealist exploring dreamlike imagery and the subconscious mind.'},
+  {cat:'Arts',icon:'🎨',q:'Who sculpted the statue of David?',c:["Donatello","Bernini","Raphael","Michelangelo"],a:3,x:'Michelangelo carved the marble David between 1501-1504; it stands over 5 meters tall in Florence.'},
+  {cat:'Arts',icon:'🎨',q:'Which art movement was led by Claude Monet and characterized by loose brushwork?',c:["Cubism","Realism","Impressionism","Fauvism"],a:2,x:'Impressionism began in 1870s France with Monet\'s loose brushwork capturing light and atmosphere.'},
+  {cat:'Arts',icon:'🎨',q:'The Sistine Chapel ceiling was painted by which Renaissance artist?',c:["Raphael","Da Vinci","Donatello","Michelangelo"],a:3,x:'Michelangelo painted the Sistine Chapel ceiling between 1508-1512 including the famous Creation of Adam.'},
+  {cat:'Arts',icon:'🎨',q:'Which Dutch Golden Age painter is known for Girl with a Pearl Earring?',c:["Rembrandt","Hals","Jan Steen","Vermeer"],a:3,x:'Johannes Vermeer painted Girl with a Pearl Earring around 1665.'},
+  {cat:'Arts',icon:'🎨',q:'Which artist is famous for painting water lilies in his garden at Giverny?',c:["Renoir","Degas","Cezanne","Monet"],a:3,x:'Claude Monet created over 250 Water Lilies paintings inspired by the pond in his garden at Giverny France.'},
+  {cat:'Arts',icon:'🎨',q:'In music what does the Italian term forte mean?',c:["Soft","Very soft","Loud","Very loud"],a:2,x:'Forte (f) means loud in music while piano (p) means soft.'},
+  {cat:'Arts',icon:'🎨',q:'Which Spanish artist is known for the painting Guernica?',c:["Joan Miro","Salvador Dali","Francisco Goya","Pablo Picasso"],a:3,x:'Picasso painted Guernica in 1937 in response to the Nazi bombing of the Basque town during the Spanish Civil War.'},
+  {cat:'Arts',icon:'🎨',q:'What is the name of the art technique where paint is applied thickly creating texture?',c:["Glazing","Scumbling","Impasto","Sgraffito"],a:2,x:'Impasto is a technique where paint is laid on thickly often showing brushstrokes or palette knife marks.'},
+  {cat:'Arts',icon:'🎨',q:'Which composer wrote The Four Seasons?',c:["Bach","Handel","Vivaldi","Telemann"],a:2,x:'Antonio Vivaldi composed The Four Seasons around 1720 as a set of four violin concertos.'},
+  {cat:'Arts',icon:'🎨',q:'Who painted The Starry Night?',c:["Gauguin","Seurat","Toulouse-Lautrec","Van Gogh"],a:3,x:'Vincent van Gogh painted The Starry Night in June 1889 while at an asylum in Saint-Remy-de-Provence.'},
+  {cat:'Arts',icon:'🎨',q:'Which artist developed Cubism along with Georges Braque?',c:["Kandinsky","Mondrian","Matisse","Picasso"],a:3,x:'Picasso and Braque developed Cubism around 1907-1914 depicting subjects from multiple perspectives.'},
+  {cat:'Arts',icon:'🎨',q:'What is the world\'s most visited art museum?',c:["Metropolitan Museum of Art","British Museum","Uffizi Gallery","The Louvre"],a:3,x:'The Louvre in Paris receives about 9 million visitors per year and houses the Mona Lisa.'},
+  {cat:'Arts',icon:'🎨',q:'What is the term for a painting done on freshly applied plaster?',c:["Mosaic","Encaustic","Fresco","Tempera"],a:2,x:'Fresco painting binds pigments into the wall as the plaster dries creating extremely durable artwork.'},
+  {cat:'Arts',icon:'🎨',q:'Who composed the opera The Magic Flute?',c:["Verdi","Puccini","Wagner","Mozart"],a:3,x:'Wolfgang Amadeus Mozart composed The Magic Flute in 1791 the same year he died aged 35.'},
+  {cat:'Arts',icon:'🎨',q:'Which American artist is known for Campbell\'s Soup Cans and pop art?',c:["Roy Lichtenstein","Jasper Johns","Robert Rauschenberg","Andy Warhol"],a:3,x:'Andy Warhol\'s Campbell\'s Soup Cans from 1962 became one of the defining works of the Pop Art movement.'},
+  {cat:'Arts',icon:'🎨',q:'Which composer is known as the father of the symphony?',c:["Mozart","Bach","Haydn","Handel"],a:2,x:'Franz Joseph Haydn wrote 104 symphonies and developed the classical symphony form.'},
+  {cat:'Arts',icon:'🎨',q:'The artwork The Persistence of Memory featuring melting clocks was created by which artist?',c:["Magritte","Ernst","De Chirico","Dali"],a:3,x:'Salvador Dali painted The Persistence of Memory in 1931.'},
+  {cat:'Arts',icon:'🎨',q:'Which Baroque composer wrote The Messiah including the Hallelujah Chorus?',c:["Vivaldi","Bach","Purcell","Handel"],a:3,x:'George Frideric Handel composed The Messiah in just 24 days in 1741.'},
+  {cat:'Arts',icon:'🎨',q:'What is the name of the Japanese art of paper folding?',c:["Ikebana","Origami","Bonsai","Calligraphy"],a:1,x:'Origami the art of paper folding developed in Japan; the word means folded paper in Japanese.'},
+  {cat:'Arts',icon:'🎨',q:'Who painted American Gothic the iconic image of a farmer and woman?',c:["Norman Rockwell","Edward Hopper","Andrew Wyeth","Grant Wood"],a:3,x:'Grant Wood painted American Gothic in 1930 using his sister and dentist as models.'},
+  {cat:'Arts',icon:'🎨',q:'Which architectural style is characterized by pointed arches ribbed vaults and flying buttresses?',c:["Romanesque","Art Nouveau","Baroque","Gothic"],a:3,x:'Gothic architecture developed in 12th century France and spread across Europe in great cathedrals.'},
+  {cat:'Arts',icon:'🎨',q:'Which artist is known for The Birth of Venus and Primavera?',c:["Raphael","Titian","Botticelli","Fra Angelico"],a:2,x:'Sandro Botticelli painted both works in the 1480s for the Medici family in Florence.'},
+  {cat:'Arts',icon:'🎨',q:'What is the Italian term for a gradually slowing tempo in music?',c:["Accelerando","Ritardando","Pianissimo","Fortissimo"],a:1,x:'Ritardando means gradually slowing the tempo of a musical piece.'},
+  {cat:'Arts',icon:'🎨',q:'The Tate Modern art gallery is located in which city?',c:["Manchester","Edinburgh","Birmingham","London"],a:3,x:'Tate Modern is located in a former power station on the south bank of the Thames in London.'},
+  {cat:'Arts',icon:'🎨',q:'Which composer wrote Swan Lake The Nutcracker and Sleeping Beauty?',c:["Stravinsky","Prokofiev","Rachmaninoff","Tchaikovsky"],a:3,x:'Pyotr Ilyich Tchaikovsky composed all three great ballets in the 1870s-1890s.'},
+  {cat:'Arts',icon:'🎨',q:'Who created The Thinker sculpture?',c:["Brancusi","Giacometti","Bernini","Rodin"],a:3,x:'Auguste Rodin created The Thinker between 1880-1882 originally as part of The Gates of Hell.'},
+  {cat:'Arts',icon:'🎨',q:'Which opera by Puccini features the aria Nessun Dorma?',c:["La Boheme","Madama Butterfly","La Traviata","Turandot"],a:3,x:'Turandot features Nessun Dorma one of the most famous tenor arias in opera.'},
+  {cat:'Arts',icon:'🎨',q:'What is the name of the famous painting by Edvard Munch depicting an anguished figure?',c:["Anxiety","Vampire","The Sick Child","The Scream"],a:3,x:'Edvard Munch painted The Scream in 1893; it is one of the most recognized paintings ever.'},
+  {cat:'Arts',icon:'🎨',q:'Which Renaissance artist painted The School of Athens?',c:["Michelangelo","Da Vinci","Titian","Raphael"],a:3,x:'Raphael painted The School of Athens between 1509-1511 as part of the Vatican Rooms.'},
+  {cat:'Arts',icon:'🎨',q:'Who composed Fur Elise and the Moonlight Sonata?',c:["Schubert","Brahms","Liszt","Beethoven"],a:3,x:'Ludwig van Beethoven composed Fur Elise around 1810 and the Moonlight Sonata in 1801.'},
+  {cat:'Arts',icon:'🎨',q:'Which American artist is known for large-scale color field paintings?',c:["Pollock","De Kooning","Rothko","Kline"],a:2,x:'Mark Rothko\'s color field paintings feature large rectangular areas of color evoking emotional responses.'},
+  {cat:'Arts',icon:'🎨',q:'Which composer wrote the opera Carmen?',c:["Verdi","Donizetti","Puccini","Bizet"],a:3,x:'Georges Bizet composed Carmen which premiered in 1875 and is now one of the world\'s most performed operas.'},
+  {cat:'Arts',icon:'🎨',q:'Who created the sculpture of Moses for the tomb of Pope Julius II?',c:["Donatello","Bernini","Ghiberti","Michelangelo"],a:3,x:'Michelangelo carved Moses around 1513-1515 as part of an ambitious tomb project for Pope Julius II.'},
+  {cat:'Arts',icon:'🎨',q:'Which art movement rejected tradition and celebrated speed and industrial modernity?',c:["Art Deco","Bauhaus","Futurism","Constructivism"],a:2,x:'Italian Futurism founded in 1909 celebrated speed technology industry and dynamic movement.'},
+  {cat:'Arts',icon:'🎨',q:'What is the name of the scale with only five notes per octave?',c:["Chromatic scale","Diatonic scale","Pentatonic scale","Whole tone scale"],a:2,x:'The pentatonic scale is found in blues jazz folk and music from cultures worldwide.'},
+  {cat:'Arts',icon:'🎨',q:'What is the term for the range of colors used by an artist?',c:["Canvas","Palette","Medium","Pigment"],a:1,x:'A palette refers both to the surface artists mix colors on and the range of colors they use.'},
+  {cat:'Arts',icon:'🎨',q:'Which movement in architecture emphasized function and rejected ornament?',c:["Art Deco","Beaux-Arts","Modernism","Postmodernism"],a:2,x:'Modernist architecture championed by Le Corbusier and Mies van der Rohe emphasized function over decoration.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote the play Hamlet?',c:["Christopher Marlowe","Ben Jonson","John Webster","William Shakespeare"],a:3,x:'William Shakespeare wrote Hamlet around 1600-1601; it is one of the most performed plays in the world.'},
+  {cat:'Literature',icon:'📖',q:'Which novel begins with It was the best of times it was the worst of times?',c:["Oliver Twist","Bleak House","David Copperfield","A Tale of Two Cities"],a:3,x:'Charles Dickens opened A Tale of Two Cities (1859) with this famous contrasting sentence.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote the Odyssey and Iliad?',c:["Virgil","Ovid","Sophocles","Homer"],a:3,x:'Homer the ancient Greek poet is credited with the Iliad and Odyssey.'},
+  {cat:'Literature',icon:'📖',q:'Which Russian author wrote War and Peace?',c:["Dostoevsky","Turgenev","Gogol","Tolstoy"],a:3,x:'Leo Tolstoy wrote War and Peace (1869) widely considered one of the greatest novels ever written.'},
+  {cat:'Literature',icon:'📖',q:'In which novel would you find the character Atticus Finch?',c:["The Grapes of Wrath","Of Mice and Men","East of Eden","To Kill a Mockingbird"],a:3,x:'Atticus Finch is the moral hero of Harper Lee\'s To Kill a Mockingbird (1960).'},
+  {cat:'Literature',icon:'📖',q:'Who wrote 1984 and Animal Farm?',c:["Aldous Huxley","Arthur Koestler","H.G. Wells","George Orwell"],a:3,x:'George Orwell wrote 1984 (1949) and Animal Farm (1945) both critiques of totalitarianism.'},
+  {cat:'Literature',icon:'📖',q:'Which poet wrote The Waste Land?',c:["Ezra Pound","W.B. Yeats","Wallace Stevens","T.S. Eliot"],a:3,x:'T.S. Eliot published The Waste Land in 1922 considered a key work of modernist poetry.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote the Chronicles of Narnia?',c:["J.R.R. Tolkien","Philip Pullman","Roald Dahl","C.S. Lewis"],a:3,x:'C.S. Lewis wrote the seven Chronicles of Narnia books between 1950 and 1956.'},
+  {cat:'Literature',icon:'📖',q:'Which French author wrote Les Miserables?',c:["Flaubert","Dumas","Zola","Hugo"],a:3,x:'Victor Hugo published Les Miserables in 1862 following ex-convict Jean Valjean in 19th-century France.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote One Hundred Years of Solitude?',c:["Mario Vargas Llosa","Isabel Allende","Jorge Luis Borges","Gabriel Garcia Marquez"],a:3,x:'Garcia Marquez published One Hundred Years of Solitude in 1967 a masterpiece of magical realism.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote Crime and Punishment?',c:["Tolstoy","Turgenev","Chekhov","Dostoevsky"],a:3,x:'Fyodor Dostoevsky published Crime and Punishment in 1866 exploring guilt and redemption.'},
+  {cat:'Literature',icon:'📖',q:'Which novel features the character Jay Gatsby?',c:["The Sun Also Rises","Tender Is the Night","This Side of Paradise","The Great Gatsby"],a:3,x:'F. Scott Fitzgerald published The Great Gatsby in 1925 exploring the American Dream.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote the Canterbury Tales?',c:["John Gower","William Langland","John Lydgate","Geoffrey Chaucer"],a:3,x:'Geoffrey Chaucer wrote the Canterbury Tales in Middle English in the late 14th century.'},
+  {cat:'Literature',icon:'📖',q:'Which author created the character Sherlock Holmes?',c:["Wilkie Collins","G.K. Chesterton","Edgar Allan Poe","Arthur Conan Doyle"],a:3,x:'Sir Arthur Conan Doyle created Sherlock Holmes first appearing in A Study in Scarlet in 1887.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote Moby Dick?',c:["Nathaniel Hawthorne","Henry James","Jack London","Herman Melville"],a:3,x:'Herman Melville published Moby Dick in 1851 the tale of Captain Ahab\'s hunt for a white whale.'},
+  {cat:'Literature',icon:'📖',q:'Which poet wrote The Raven?',c:["Walt Whitman","Henry Wadsworth Longfellow","Emily Dickinson","Edgar Allan Poe"],a:3,x:'Edgar Allan Poe published The Raven in 1845 making him famous almost overnight.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote Pride and Prejudice?',c:["Charlotte Bronte","George Eliot","Elizabeth Gaskell","Jane Austen"],a:3,x:'Jane Austen published Pride and Prejudice in 1813 featuring Elizabeth Bennet and Mr Darcy.'},
+  {cat:'Literature',icon:'📖',q:'Which novel by Franz Kafka features a man who wakes up as a giant insect?',c:["The Trial","The Castle","Amerika","The Metamorphosis"],a:3,x:'Kafka published The Metamorphosis in 1915 in which Gregor Samsa wakes transformed into a vermin.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote the Divine Comedy?',c:["Petrarch","Boccaccio","Virgil","Dante Alighieri"],a:3,x:'Dante Alighieri wrote the Divine Comedy between 1308-1320 considered the greatest work of Italian literature.'},
+  {cat:'Literature',icon:'📖',q:'Which American novel follows the Joad family during the Great Depression?',c:["East of Eden","Of Mice and Men","Cannery Row","The Grapes of Wrath"],a:3,x:'John Steinbeck published The Grapes of Wrath in 1939 winning the Pulitzer Prize.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote the Harry Potter series?',c:["Suzanne Collins","Philip Pullman","Terry Pratchett","J.K. Rowling"],a:3,x:'J.K. Rowling published the first Harry Potter novel in 1997; the series has sold over 500 million copies.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote Brave New World?',c:["H.G. Wells","Ray Bradbury","Philip K. Dick","Aldous Huxley"],a:3,x:'Aldous Huxley published Brave New World in 1932 depicting a dystopian future of manufactured happiness.'},
+  {cat:'Literature',icon:'📖',q:'Which Nobel laureate wrote Beloved about the trauma of slavery?',c:["Maya Angelou","Alice Walker","Zora Neale Hurston","Toni Morrison"],a:3,x:'Toni Morrison published Beloved in 1987 winning the Pulitzer Prize and later the Nobel Prize.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote the Lord of the Rings?',c:["C.S. Lewis","Terry Brooks","Robert Jordan","J.R.R. Tolkien"],a:3,x:'J.R.R. Tolkien published The Lord of the Rings in three volumes between 1954-1955.'},
+  {cat:'Literature',icon:'📖',q:'Which play by Samuel Beckett features two characters waiting for someone who never arrives?',c:["Endgame","Happy Days","Krapp\'s Last Tape","Waiting for Godot"],a:3,x:'Beckett\'s Waiting for Godot premiered in 1953 and became a landmark of absurdist theatre.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote the epic poem Paradise Lost?',c:["John Donne","Edmund Spenser","Andrew Marvell","John Milton"],a:3,x:'John Milton published Paradise Lost in 1667 retelling Satan\'s fall and the story of Adam and Eve.'},
+  {cat:'Literature',icon:'📖',q:'Which Russian author wrote The Brothers Karamazov?',c:["Tolstoy","Turgenev","Pushkin","Dostoevsky"],a:3,x:'Dostoevsky published The Brothers Karamazov in 1880 exploring faith doubt and moral responsibility.'},
+  {cat:'Literature',icon:'📖',q:'Which novel by James Joyce follows Leopold Bloom through a single day in Dublin?',c:["Portrait of the Artist","Dubliners","Finnegans Wake","Ulysses"],a:3,x:'Joyce published Ulysses in 1922 paralleling Homer\'s Odyssey across one day in June 1904.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote The Catcher in the Rye?',c:["Jack Kerouac","Norman Mailer","John Updike","J.D. Salinger"],a:3,x:'J.D. Salinger published The Catcher in the Rye in 1951 featuring the iconic Holden Caulfield.'},
+  {cat:'Literature',icon:'📖',q:'Which author wrote the Hitchhiker\'s Guide to the Galaxy?',c:["Terry Pratchett","Neil Gaiman","Douglas Adams","Tom Holt"],a:2,x:'Douglas Adams published The Hitchhiker\'s Guide to the Galaxy in 1979.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote The Old Man and the Sea?',c:["John Steinbeck","William Faulkner","F. Scott Fitzgerald","Ernest Hemingway"],a:3,x:'Hemingway published The Old Man and the Sea in 1952 winning the Pulitzer Prize.'},
+  {cat:'Literature',icon:'📖',q:'Which Bronte sister wrote Wuthering Heights?',c:["Anne Bronte","Charlotte Bronte","All three collaborated","Emily Bronte"],a:3,x:'Emily Bronte published Wuthering Heights in 1847 under the pen name Ellis Bell.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote The Picture of Dorian Gray?',c:["George Bernard Shaw","Henry James","Samuel Butler","Oscar Wilde"],a:3,x:'Oscar Wilde published The Picture of Dorian Gray in 1890 his only novel.'},
+  {cat:'Literature',icon:'📖',q:'Which American author wrote Beloved The Bluest Eye and Song of Solomon?',c:["Alice Walker","Toni Morrison","Maya Angelou","Zora Neale Hurston"],a:1,x:'Toni Morrison won the Nobel Prize in Literature in 1993.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote In Search of Lost Time?',c:["Gustave Flaubert","Emile Zola","Andre Gide","Marcel Proust"],a:3,x:'Marcel Proust published his monumental novel in seven volumes between 1913 and 1927 totaling over 1.5 million words.'},
+  {cat:'Literature',icon:'📖',q:'Which Greek playwright wrote Oedipus Rex?',c:["Aeschylus","Euripides","Aristophanes","Sophocles"],a:3,x:'Sophocles wrote Oedipus Rex around 429 BC famously analyzed by Freud as a psychological text.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote The Handmaid\'s Tale?',c:["Doris Lessing","Ursula K. Le Guin","Octavia Butler","Margaret Atwood"],a:3,x:'Margaret Atwood published The Handmaid\'s Tale in 1985 a dystopian novel about theocratic patriarchy.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote Anna Karenina?',c:["Dostoevsky","Turgenev","Chekhov","Tolstoy"],a:3,x:'Leo Tolstoy published Anna Karenina between 1875-1877 exploring love marriage and Russian society.'},
+  {cat:'Literature',icon:'📖',q:'Which novel by Charlotte Bronte features the governess Jane Eyre?',c:["Agnes Grey","Villette","The Professor","Jane Eyre"],a:3,x:'Charlotte Bronte published Jane Eyre in 1847 under the pen name Currer Bell.'},
+  {cat:'Literature',icon:'📖',q:'Who wrote the Aeneid?',c:["Ovid","Homer","Horace","Virgil"],a:3,x:'Virgil wrote the Aeneid between 29-19 BC commissioned by Emperor Augustus to glorify Rome\'s founding.'}
+];
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+const NUM_Q=12;
+// Limb order: left arm, right arm, left leg, right leg
+const DRAGON_LIMBS=['drag-larm','drag-rarm','drag-lleg','drag-rleg'];
+const WIZARD_LIMBS=['wiz-larm','wiz-rarm','wiz-lleg','wiz-rleg'];
+const LIMB_NAMES=['left arm','right arm','left leg','right leg'];
+
+let questions=[],currentQ=0,score=0,wizardHits=0,dragonHits=0,answered=false,results=[];
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id);
+  el.classList.add('active');el.style.animation='none';el.offsetHeight;el.style.animation='';
+}
+
+function buildStepTrack(){
+  const track=document.getElementById('stepTrack');
+  track.innerHTML='';
+  // 4 hits to kill each fighter — show dragon hits as dots
+  for(let i=0;i<5;i++){
+    const d=document.createElement('div');d.className='step-dot';d.id='sdot'+i;
+    track.appendChild(d);
+  }
+  const lbl=document.createElement('div');lbl.className='step-label';lbl.textContent='DRAGON HITS';
+  track.appendChild(lbl);
+}
+
+function updateStepDots(){
+  for(let i=0;i<5;i++){
+    const el=document.getElementById('sdot'+i);if(!el)continue;
+    el.className='step-dot'+(i<dragonHits?' passed':'');
+  }
+}
+
+function severedLimb(isWizard, hitNum){
+  // hitNum 0-3 = left arm, right arm, left leg, right leg
+  const id=(isWizard?WIZARD_LIMBS:DRAGON_LIMBS)[hitNum];
+  const el=document.getElementById(id);
+  if(el){
+    el.classList.add('severed');
+    // shake the whole fighter
+    const wrap=document.getElementById(isWizard?'wizardWrap':'dragonWrap');
+    wrap.classList.remove('hit-flash');wrap.offsetHeight;wrap.classList.add('hit-flash');
+    setTimeout(()=>wrap.classList.remove('hit-flash'),450);
+  }
+}
+
+function killFighter(isWizard){
+  // Hide the whole body on the 5th hit
+  const svgEl=document.querySelector('#'+(isWizard?'wizardWrap':'dragonWrap')+' svg');
+  if(svgEl){
+    svgEl.style.transition='opacity 0.5s';
+    svgEl.style.opacity='0.1';
+    svgEl.style.filter='grayscale(1)';
+  }
+  const wrap=document.getElementById(isWizard?'wizardWrap':'dragonWrap');
+  wrap.classList.remove('hit-flash');wrap.offsetHeight;wrap.classList.add('hit-flash');
+  setTimeout(()=>wrap.classList.remove('hit-flash'),450);
+}
+
+function shootSpell(){
+  const arena=document.getElementById('battleArena');
+  const proj=document.createElement('div');
+  proj.className='proj spell-proj';
+  proj.textContent='✨';
+  // from wizard side ~80px to dragon side ~arena_width - 80px
+  const aw=arena.offsetWidth||350;
+  proj.style.setProperty('--sx','70px');
+  proj.style.setProperty('--sy','50px');
+  proj.style.setProperty('--ex',(aw-90)+'px');
+  proj.style.setProperty('--ey','50px');
+  arena.appendChild(proj);
+  setTimeout(()=>{if(proj.parentNode)proj.parentNode.removeChild(proj);},550);
+}
+
+function shootFireball(){
+  const arena=document.getElementById('battleArena');
+  const proj=document.createElement('div');
+  proj.className='proj fire-proj';
+  proj.textContent='🔥';
+  const aw=arena.offsetWidth||350;
+  proj.style.setProperty('--sx',(aw-90)+'px');
+  proj.style.setProperty('--sy','50px');
+  proj.style.setProperty('--ex','70px');
+  proj.style.setProperty('--ey','50px');
+  arena.appendChild(proj);
+  setTimeout(()=>{if(proj.parentNode)proj.parentNode.removeChild(proj);},550);
+}
+
+function resetFighters(){
+  [...DRAGON_LIMBS,...WIZARD_LIMBS].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.classList.remove('severed');
+  });
+  ['wizardWrap','dragonWrap'].forEach(id=>{
+    const svgEl=document.querySelector('#'+id+' svg');
+    if(svgEl){svgEl.style.opacity='';svgEl.style.filter='';}
+  });
+}
+
+function startGame(){
+  wizardHits=0;dragonHits=0;score=0;currentQ=0;results=[];answered=false;
+  resetFighters();
+  buildStepTrack();
+  updateStepDots();
+  document.getElementById('scoreVal').textContent='0';
+  // Pick exactly 2 questions from each of the 6 categories
+  const allCats=['History','Science','Geography','Sports','Arts','Literature'];
+  questions=[];
+  allCats.forEach(cat=>{
+    const pool=shuffle(BANK.filter(q=>q.cat===cat));
+    questions.push(pool[0],pool[1]);
+  });
+  questions=shuffle(questions);
+  setTimeout(()=>{renderQ();show('battle');},50);
+}
+
+function renderQ(){
+  if(currentQ>=questions.length){endGame();return;}
+  answered=false;
+  const q=questions[currentQ];
+  document.getElementById('qNum').textContent=`Question ${currentQ+1} of ${NUM_Q}`;
+  document.getElementById('catIcon').textContent=q.icon;
+  document.getElementById('catLabel').textContent=q.cat;
+  document.getElementById('questionText').textContent=q.q;
+  document.getElementById('logText').textContent='The dragon awaits your answer...';
+  const ch=document.getElementById('choices');ch.innerHTML='';
+  ['A','B','C','D'].forEach((L,i)=>{
+    const btn=document.createElement('button');btn.className='choice-btn';
+    btn.innerHTML=`<span class="choice-letter">${L}</span><span class="choice-text">${q.c[i]}</span>`;
+    btn.onclick=()=>handleAnswer(i,btn);
+    ch.appendChild(btn);
+  });
+}
+
+function handleAnswer(chosen,btn){
+  if(answered)return;
+  answered=true;
+  const q=questions[currentQ];
+  document.querySelectorAll('.choice-btn').forEach(b=>b.classList.add('disabled'));
+  const correct=chosen===q.a;
+  results.push(correct);
+
+  if(correct){
+    btn.classList.add('correct');
+    document.querySelectorAll('.choice-btn')[q.a].classList.add('correct');
+    score+=10;
+    document.getElementById('scoreVal').textContent=score;
+    // Wizard casts
+    const ww=document.getElementById('wizardWrap');
+    ww.classList.remove('cast-anim');ww.offsetHeight;ww.classList.add('cast-anim');
+    setTimeout(()=>ww.classList.remove('cast-anim'),400);
+    // Spell flies
+    setTimeout(()=>shootSpell(),150);
+    // Dragon takes hit: sever next limb, 5th hit kills
+    setTimeout(()=>{
+      if(dragonHits<5){
+        if(dragonHits<4){
+          const part=LIMB_NAMES[dragonHits];
+          severedLimb(false, dragonHits);
+          document.getElementById('logText').textContent=`✨ Spell severs the dragon's ${part}! ${q.x}`;
+        } else {
+          killFighter(false);
+          document.getElementById('logText').textContent=`✨ Killing blow! Ignivex falls! ${q.x}`;
+        }
+        dragonHits++;
+        updateStepDots();
+      }
+    },600);
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.choice-btn')[q.a].classList.add('correct');
+    // Dragon fires
+    setTimeout(()=>shootFireball(),150);
+    // Wizard takes hit: sever next limb, 5th hit kills
+    setTimeout(()=>{
+      if(wizardHits<5){
+        if(wizardHits<4){
+          const part=LIMB_NAMES[wizardHits];
+          severedLimb(true, wizardHits);
+          document.getElementById('logText').textContent=`🔥 Dragon severs your ${part}! ${q.x}`;
+        } else {
+          killFighter(true);
+          document.getElementById('logText').textContent=`🔥 The killing blow lands! You have fallen! ${q.x}`;
+        }
+        wizardHits++;
+      } else {
+        document.getElementById('logText').textContent=`🔥 The dragon retaliates! ${q.x}`;
+      }
+    },600);
+  }
+  triggerFlash(correct?'correct':'wrong');
+
+  currentQ++;
+  setTimeout(()=>{
+    if(currentQ>=questions.length||wizardHits>=5||dragonHits>=5){endGame();}
+    else{renderQ();}
+  },2200);
+}
+
+function triggerFlash(type){
+  const o=document.getElementById('flashOverlay');
+  o.className='flash-overlay';o.offsetHeight;
+  o.classList.add(type==='correct'?'show-correct':'show-wrong');
+  setTimeout(()=>o.className='flash-overlay',600);
+}
+
+function endGame(){
+  const pct=score/(NUM_Q*10);
+  let scene,title,sub,verdict;
+  if(dragonHits>=5){
+    scene='🐉💀';title='Ignivex is Slain!';sub='The dragon has been vanquished';
+    verdict='Your spells struck true! Every limb of Ignivex is broken. Ballads shall be sung of this victory.';
+  } else if(wizardHits>=5){
+    scene='💀🧙‍♂️';title='Wizard Kyle Has Fallen';sub='The dragon reigns supreme';
+    verdict='The flames consumed you limb by limb. Your staff lies cold on the battlefield. Rise again, wizard.';
+  } else if(pct>=0.7){
+    scene='✨🧙‍♂️';title='Victorious!';sub='The dragon retreats';
+    verdict='A worthy wizard! Ignivex limps back to its lair, bested by your spells and knowledge.';
+  } else if(pct>=0.4){
+    scene='🧙‍♂️';title='Survived';sub='A hard-fought stalemate';
+    verdict='You live to fight another day. The dragon remains at large. Return stronger.';
+  } else {
+    scene='🔥🐉';title='Defeated';sub='The dragon triumphs';
+    verdict='The beast bested you this day. Return to the scrolls and arm yourself with knowledge.';
+  }
+  const sceneEl=document.getElementById('endScene');
+  sceneEl.style.fontSize='90px';sceneEl.style.lineHeight='1.1';
+  sceneEl.textContent=scene;
+  document.getElementById('endTitle').textContent=title;
+  document.getElementById('endSub').textContent=sub;
+  document.getElementById('endScore').textContent=score;
+  document.getElementById('endVerdict').textContent=verdict;
+  show('endscreen');
+}
+</script>
+
+</body>
+</html>
